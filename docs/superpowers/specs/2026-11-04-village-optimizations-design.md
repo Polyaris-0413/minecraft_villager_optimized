@@ -92,10 +92,19 @@ activeActivities）。
 ### 4.1 参数（唯一设计源）
 
 所有可调数值集中在 `com.polyaris.village.VillageSettings`，实现处只引用，不另写字面量。
-数值来源：铁傀儡 25 HP/次取自原版；村民 `FOLLOW_RANGE` 为 48（寻路长度上限），
-原版感知半径常见 8–16，故搜索半径取 16；睡眠回血取 1 HP/秒（玩家自然回血为 1 HP/4 秒 ~
-1 HP/0.5 秒之间，取中间值，一夜必然回满）。未找到针对本场景的权威"主流推荐值"，
-以上为与原版数值对齐后的选择。
+数值来源与对照（2026-11-04 联网核对）：
+
+- **铁傀儡 25 HP/次**：原版行为（`IronGolem#mobInteract` 的 `heal(25.0F)`），
+  [Minecraft Wiki](https://minecraft.wiki/w/Iron_Golem) 同记。
+- **睡眠回血 1 HP/秒**：与现成的同类实现完全一致 ——
+  [Villagers Regeneration](https://modrinth.com/mod/villagers-regeneration)（13,679 次下载，支持 1.21.1）
+  明确写"村民睡觉时每秒恢复 1 点生命值"。
+- **搜索半径 16 格**：没有权威推荐值；村民 `FOLLOW_RANGE=48` 是寻路长度上限，
+  原版感知半径常见 8–16，取 16。
+- **同类参考**：[Helpful Armorers](https://modrinth.com/mod/helpful-armorers)（Fabric，1.21.1+）
+  也做"盔甲匠修铁傀儡"，但未公开具体数值；它额外限制"敌对生物在附近 / 夜晚 / 受伤时不修"，
+  本模组未采用，属于可选增强。
+
 
 | 参数 | 值 | 依据 |
 | --- | --- | --- |
