@@ -1,0 +1,86 @@
+package com.polyaris.village.gametest;
+
+import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.GlobalPos;
+import net.minecraft.gametest.framework.GameTest;
+import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+import net.minecraft.world.entity.animal.IronGolem;
+import net.minecraft.world.entity.npc.Villager;
+import net.minecraft.world.entity.npc.VillagerProfession;
+import net.minecraft.world.entity.npc.VillagerType;
+import net.minecraft.world.level.block.BedBlock;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.properties.BedPart;
+
+/**
+ * 三条机制的集成测试，跑在服务端 GameTest 世界里（gradlew runGameTest）。
+ * 结构模板用 Fabric API 提供的 8×8×8 空结构，地面由 {@link #buildFloor} 自己铺。
+ */
+public class VillageOptimizedGameTest implements FabricGameTest {
+	private static final int FLOOR_LAYER = 0;
+	private static final int FLOOR_SIZE = 8;
+
+	/** 村民落到耕地上不应把它踩成泥土；同高度的僵尸应当踩坏（对照组，证明测试条件成立）。 */
+	@GameTest(template = FabricGameTest.EMPTY_STRUCTURE, timeoutTicks = 100)
+	public void villagersDoNotTrampleFarmland(GameTestHelper helper) {
+		buildFloor(helper);
+		helper.setBlock(1, 1, 1, Blocks.FARMLAND);
+		helper.setBlock(5, 1, 1, Blocks.FARMLAND);
+		helper.spawn(EntityType.VILLAGER, 1.5F, 4.0F, 1.5F);
+		helper.spawn(EntityType.ZOMBIE, 5.5F, 4.0F, 1.5F);
+		helper.runAfterDelay(40L, () -> {
+			helper.assertBlockPresent(Blocks.FARMLAND, 1, 1, 1);
+			helper.assertBlockPresent(Blocks.DIRT, 5, 1, 1);
+			helper.succeed();
+		});
+	}
+
+	/** 工具匠应当自己走到受伤的铁傀儡身边并把它修好。 */
+	@GameTest(template = FabricGameTest.EMPTY_STRUCTURE, timeoutTicks = 400)
+	public void smithsRepairDamagedGolem(GameTestHelper helper) {
+		buildFloor(helper);
+		helper.setBlock(2, 1, 2, Blocks.SMITHING_TABLE);
+		Villager smith = helper.spawn(EntityType.VILLAGER, 1, 1, 1);
+		smith.setVillagerData(smith.getVillagerData().setType(VillagerType.PLAINS).setProfession(VillagerProfession.TOOLSMITH));
+		// 村民生成时职业是 NONE、Brain 也按 NONE 建好；改职业后必须重建，否则 ResetProfession 与 POI 校验都按旧职业走
+		smith.refreshBrain(helper.getLevel());
+		smith.getBrain().setMemory(
+			MemoryModuleType.JOB_SITE,
+			GlobalPos.of(helper.getLevel().dimension(), helper.absolutePos(new BlockPos(2, 1, 2)))
+		);
+		IronGolem golem = helper.spawn(EntityType.IRON_GOLEM, 1, 1, 6);
+		golem.setHealth(40.0F);
+		helper.succeedWhen(() -> helper.assertTrue(golem.getHealth() > 40.0F, "铁傀儡没有被修复，当前血量 " + golem.getHealth()));
+	}
+
+	/** 夜里受伤的村民躺到床上后应当每秒回 1 点血。 */
+	@GameTest(template = FabricGameTest.EMPTY_STRUCTURE, timeoutTicks = 600)
+	public void sleepingVillagersRegenerateHealth(GameTestHelper helper) {
+		buildFloor(helper);
+		helper.setBlock(3, 1, 3, Blocks.RED_BED.defaultBlockState()
+			.setValue(BedBlock.FACING, Direction.NORTH)
+			.setValue(BedBlock.PART, BedPart.FOOT));
+		helper.setBlock(3, 1, 2, Blocks.RED_BED.defaultBlockState()
+			.setValue(BedBlock.FACING, Direction.NORTH)
+			.setValue(BedBlock.PART, BedPart.HEAD));
+		helper.setNight();
+		Villager villager = helper.spawn(EntityType.VILLAGER, 4, 1, 3);
+		villager.setHealth(5.0F);
+		helper.succeedWhen(() -> helper.assertTrue(
+			villager.isSleeping() && villager.getHealth() > 5.0F,
+			"村民没有在睡眠中回血（睡觉=" + villager.isSleeping() + "，血量=" + villager.getHealth() + "）"
+		));
+	}
+
+	private static void buildFloor(GameTestHelper helper) {
+		for (int x = 0; x < FLOOR_SIZE; x++) {
+			for (int z = 0; z < FLOOR_SIZE; z++) {
+				helper.setBlock(x, FLOOR_LAYER, z, Blocks.DIRT);
+			}
+		}
+	}
+}

@@ -169,25 +169,33 @@ src/main/java/com/polyaris/village/
     ├── VillagerMixin.java                   # 需求三
     └── VillagerGoalPackagesMixin.java       # 需求二（挂载）
 src/main/resources/villageoptimized.mixins.json  # 注册新 mixin
+src/gametest/java/com/polyaris/village/gametest/VillageOptimizedGameTest.java  # 三条机制的 GameTest
+src/gametest/resources/fabric.mod.json       # 测试模组（fabric-gametest 入口）
+build.gradle                                  # fabricApi.configureTests 配置
 docs/superpowers/specs/2026-11-04-village-optimizations-design.md
 ```
 
 ## 6. 验证
 
-1. `gradlew build` 通过（编译 + mixin 配置校验）。
-2. 启动开发服务器，确认 mixin 全部应用、无 `Mixin apply failed`、运行一段时间无异常。
-3. 游戏内手动验收清单：
+1. `gradlew build` 通过（编译 + mixin 配置校验；`check` 会顺带跑 GameTest）。
+2. `gradlew runGameTest` 跑 `src/gametest` 下的 3 个服务端 GameTest（空结构 + 自铺地面）：
+   - `villagersDoNotTrampleFarmland`：村民落地后耕地保留，僵尸落地后变泥土（对照组）；
+   - `smithsRepairDamagedGolem`：工具匠把 40 HP 的铁傀儡修到 40 以上；
+   - `sleepingVillagersRegenerateHealth`：夜里受伤村民躺床后血量回升。
+3. 启动开发服务器，确认 mixin 全部应用、无 `Mixin apply failed`、运行一段时间无异常。
+4. 游戏内手动验收清单（人员手测，见下方验证记录）：
    - 让村民从 1 格高处落到耕地上多次 → 耕地保持耕地，且仍会受到摔落伤害；
    - 铁傀儡落地仍会把耕地踩成泥土（验证"仅限村民"）；
    - 打伤铁傀儡 → 盔甲匠/工具匠/武器匠走到身边，每秒 +25 血，修满即停；
      非铁匠职业、正在交易的村民不会前往；
    - 夜里观察受伤村民睡觉 → 生命值每秒 +1，天亮时已满。
 
-### 验证记录（2026-11-04，本机 dev server + RCON）
+### 验证记录（2026-11-04，本机 dev server + RCON + GameTest）
 
 | 项目 | 操作 | 结果 |
 | --- | --- | --- |
-| 编译 | `gradlew build` | BUILD SUCCESSFUL |
+| 编译 | `gradlew build` | BUILD SUCCESSFUL（含 3 个 GameTest） |
+| GameTest | `gradlew runGameTest` | All 3 required tests passed |
 | mixin | `gradlew runServer` 启动 | 无 `Mixin apply failed`、无异常 |
 | 耕地保护 | 村民与僵尸分别从 3 格高处落到耕地 | 村民脚下仍是 farmland；僵尸脚下变成 dirt（对照组，证明测试有效） |
 | 铁匠修复 | 武器匠 + 6 格外的 40 HP 铁傀儡 | 约 2–3 秒修到 100 HP，之后不再变化 |

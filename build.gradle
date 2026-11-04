@@ -32,6 +32,16 @@ dependencies {
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 }
 
+fabricApi {
+	// 服务端 GameTest：源码集固定为 src/gametest，跑起来用 gradlew runGameTest
+	configureTests {
+		getCreateSourceSet().set(true)
+		getModId().set("villageoptimized-gametest")
+		getEnableGameTests().set(true)
+		getEnableClientGameTests().set(false)
+	}
+}
+
 processResources {
 	def version = project.version
 	inputs.property "version", version
