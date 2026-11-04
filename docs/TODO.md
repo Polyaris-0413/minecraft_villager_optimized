@@ -8,7 +8,6 @@
       换成自己的链接；没有就删掉这两个字段
 - [ ] 重写 `README.md`（现在是 Fabric 模板的 Setup / License 说明）
 - [ ] 换掉模板图标 `src/main/resources/assets/villageoptimized/icon.png`
-- [ ] 决定是否保留 `VillageOptimizedClient`（当前是空的客户端入口，只注入 `ClientModInitializer`）
 
 ## 可选增强
 
