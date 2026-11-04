@@ -2,29 +2,9 @@ package com.polyaris.village;
 
 import net.fabricmc.api.ModInitializer;
 
-import net.minecraft.resources.ResourceLocation;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+/** 模组入口。三条功能全部由 mixin 和村民 Brain 行为实现，这里不需要注册任何内容。 */
 public class VillageOptimized implements ModInitializer {
-	public static final String MOD_ID = "villageoptimized";
-
-	// This logger is used to write text to the console and the log file.
-	// It is considered best practice to use your mod id as the logger's name.
-	// That way, it's clear which mod wrote info, warnings, and errors.
-	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-
 	@Override
 	public void onInitialize() {
-		// This code runs as soon as Minecraft is in a mod-load-ready state.
-		// However, some things (like resources) may still be uninitialized.
-		// Proceed with mild caution.
-
-		LOGGER.info("Hello Fabric world!");
-	}
-
-	public static ResourceLocation id(String path) {
-		return ResourceLocation.fromNamespaceAndPath(MOD_ID, path);
 	}
 }

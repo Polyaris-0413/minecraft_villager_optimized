@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Villager.class)
 public class VillagerMixin {
-	/** 原版自然回血只对玩家生效（FoodData 驱动，游戏规则也归在 PLAYER 类），村民没有任何自愈逻辑。 */
+	/** 原版自然回血只对玩家生效（FoodData 驱动，游戏规则也归在 PLAYER 类）；村民只有补货后拿到的短暂再生效果。 */
 	@Inject(method = "tick", at = @At("TAIL"))
 	private void villageoptimized$regenerateWhileSleeping(CallbackInfo ci) {
 		Villager villager = (Villager) (Object) this;

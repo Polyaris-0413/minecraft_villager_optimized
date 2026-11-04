@@ -2,6 +2,7 @@ package com.polyaris.village.mixin;
 
 import com.google.common.collect.ImmutableList;
 import com.mojang.datafixers.util.Pair;
+import com.polyaris.village.VillageSettings;
 import com.polyaris.village.ai.RepairIronGolemBehavior;
 import net.minecraft.world.entity.ai.behavior.BehaviorControl;
 import net.minecraft.world.entity.ai.behavior.VillagerGoalPackages;
@@ -22,7 +23,7 @@ public class VillagerGoalPackagesMixin {
 		CallbackInfoReturnable<ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>>> cir
 	) {
 		ImmutableList.Builder<Pair<Integer, ? extends BehaviorControl<? super Villager>>> behaviors = ImmutableList.builder();
-		behaviors.add(Pair.of(1, new RepairIronGolemBehavior()));
+		behaviors.add(Pair.of(VillageSettings.GOLEM_REPAIR_BEHAVIOR_PRIORITY, new RepairIronGolemBehavior()));
 		behaviors.addAll(cir.getReturnValue());
 		cir.setReturnValue(behaviors.build());
 	}

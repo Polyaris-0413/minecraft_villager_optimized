@@ -8,6 +8,7 @@ import com.google.common.collect.ImmutableMap;
 import com.polyaris.village.VillageSettings;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.behavior.Behavior;
 import net.minecraft.world.entity.ai.behavior.EntityTracker;
@@ -25,9 +26,6 @@ import org.jetbrains.annotations.Nullable;
  * 由原版的 MoveToTargetSink 负责实际寻路。
  */
 public class RepairIronGolemBehavior extends Behavior<Villager> {
-	/** Behavior 自带时长的兜底值，真正是否继续由 {@link #canStillUse} 决定。 */
-	private static final int FALLBACK_DURATION_TICKS = 1200;
-
 	@Nullable
 	private IronGolem golem;
 	private long attemptStartTime;
@@ -36,7 +34,7 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 	private long unreachableSinceAtStart = Long.MIN_VALUE;
 
 	public RepairIronGolemBehavior() {
-		super(ImmutableMap.of(), FALLBACK_DURATION_TICKS);
+		super(ImmutableMap.of(), VillageSettings.GOLEM_REPAIR_BEHAVIOR_DURATION_TICKS);
 	}
 
 	@Override
@@ -75,7 +73,7 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 			return false;
 		}
 
-		if (villager.distanceToSqr(this.golem) > square(VillageSettings.GOLEM_REPAIR_SEARCH_RADIUS)) {
+		if (villager.distanceToSqr(this.golem) > Mth.square(VillageSettings.GOLEM_REPAIR_SEARCH_RADIUS)) {
 			return false;
 		}
 
@@ -97,10 +95,14 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 
 		Brain<Villager> brain = villager.getBrain();
 		brain.setMemory(MemoryModuleType.LOOK_TARGET, new EntityTracker(this.golem, true));
-		if (villager.distanceToSqr(this.golem) > square(VillageSettings.GOLEM_REPAIR_REACH)) {
+		if (villager.distanceToSqr(this.golem) > Mth.square(VillageSettings.GOLEM_REPAIR_REACH)) {
 			brain.setMemory(
 				MemoryModuleType.WALK_TARGET,
-				new WalkTarget(new EntityTracker(this.golem, false), VillageSettings.GOLEM_REPAIR_WALK_SPEED, 1)
+				new WalkTarget(
+					new EntityTracker(this.golem, false),
+					VillageSettings.GOLEM_REPAIR_WALK_SPEED,
+					VillageSettings.GOLEM_REPAIR_WALK_CLOSE_ENOUGH
+				)
 			);
 			return;
 		}
@@ -128,8 +130,11 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 		float healthBefore = this.golem.getHealth();
 		this.golem.heal(VillageSettings.GOLEM_REPAIR_AMOUNT);
 		if (this.golem.getHealth() > healthBefore) {
-			float pitch = 1.0F + (this.golem.getRandom().nextFloat() - this.golem.getRandom().nextFloat()) * 0.2F;
-			this.golem.playSound(SoundEvents.IRON_GOLEM_REPAIR, 1.0F, pitch);
+			// 音高抖动与原版 IronGolem#mobInteract 的修复音效一致
+			float pitch = 1.0F
+				+ (this.golem.getRandom().nextFloat() - this.golem.getRandom().nextFloat())
+					* VillageSettings.GOLEM_REPAIR_SOUND_PITCH_JITTER;
+			this.golem.playSound(SoundEvents.IRON_GOLEM_REPAIR, VillageSettings.GOLEM_REPAIR_SOUND_VOLUME, pitch);
 		}
 	}
 
@@ -139,10 +144,13 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 		}
 
 		Brain<Villager> brain = villager.getBrain();
-		return brain.isActive(Activity.PANIC)
-			|| brain.isActive(Activity.RAID)
-			|| brain.isActive(Activity.PRE_RAID)
-			|| brain.isActive(Activity.HIDE);
+		for (Activity activity : VillageSettings.GOLEM_REPAIR_BLOCKED_ACTIVITIES) {
+			if (brain.isActive(activity)) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	@Nullable
@@ -154,9 +162,5 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 			golem -> golem.isAlive() && golem.getHealth() < golem.getMaxHealth()
 		);
 		return candidates.stream().min(Comparator.comparingDouble(villager::distanceToSqr)).orElse(null);
-	}
-
-	private static double square(double value) {
-		return value * value;
 	}
 }

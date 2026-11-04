@@ -3,10 +3,11 @@ package com.polyaris.village;
 import java.util.Set;
 
 import net.minecraft.world.entity.npc.VillagerProfession;
+import net.minecraft.world.entity.schedule.Activity;
 
 /**
- * 本模组全部可调参数的唯一来源，实现处只引用、不另写字面量。
- * 数值依据见 docs/superpowers/specs/2026-11-04-village-optimizations-design.md。
+ * 本模组全部可调参数与行为开关的唯一来源，实现处只引用、不另写字面量。
+ * 取值依据见 docs/superpowers/specs/2026-11-04-village-optimizations-design.md。
  */
 public final class VillageSettings {
 	private VillageSettings() {
@@ -19,6 +20,20 @@ public final class VillageSettings {
 		VillagerProfession.WEAPONSMITH
 	);
 
+	/** 这些活动期间不修铁傀儡：逃跑、袭击、袭击前、躲藏。 */
+	public static final Set<Activity> GOLEM_REPAIR_BLOCKED_ACTIVITIES = Set.of(
+		Activity.PANIC,
+		Activity.RAID,
+		Activity.PRE_RAID,
+		Activity.HIDE
+	);
+
+	/** 修复行为在村民 CORE 行为包里的优先级：1 高于工作、闲逛（5），低于恐慌（0）。 */
+	public static final int GOLEM_REPAIR_BEHAVIOR_PRIORITY = 1;
+
+	/** 行为的兜底时长（tick）；真正是否继续由 canStillUse 判断。 */
+	public static final int GOLEM_REPAIR_BEHAVIOR_DURATION_TICKS = 1200;
+
 	/** 单次修复恢复的生命值，与原版玩家手持铁锭右键铁傀儡一致。 */
 	public static final float GOLEM_REPAIR_AMOUNT = 25.0F;
 
@@ -27,6 +42,9 @@ public final class VillageSettings {
 
 	/** 村民近身作业的距离（格）。 */
 	public static final double GOLEM_REPAIR_REACH = 2.0;
+
+	/** 走向铁傀儡时，离目标多近算“到了”（格）。 */
+	public static final int GOLEM_REPAIR_WALK_CLOSE_ENOUGH = 1;
 
 	/** 两次修复动作的间隔（tick）。 */
 	public static final int GOLEM_REPAIR_ACTION_INTERVAL_TICKS = 20;
@@ -45,6 +63,12 @@ public final class VillageSettings {
 
 	/** 走向铁傀儡的速度修正，与村民工作、闲逛一致。 */
 	public static final float GOLEM_REPAIR_WALK_SPEED = 0.5F;
+
+	/** 修复音效音量，与原版 IronGolem#mobInteract 一致。 */
+	public static final float GOLEM_REPAIR_SOUND_VOLUME = 1.0F;
+
+	/** 修复音效音高的随机抖动幅度，与原版 IronGolem#mobInteract 一致。 */
+	public static final float GOLEM_REPAIR_SOUND_PITCH_JITTER = 0.2F;
 
 	/** 睡眠时每次恢复的生命值。 */
 	public static final float SLEEP_REGENERATION_AMOUNT = 1.0F;
