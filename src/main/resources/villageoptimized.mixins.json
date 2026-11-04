@@ -3,7 +3,6 @@
 	"package": "com.polyaris.village.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"ExampleMixin",
 		"FarmBlockMixin",
 		"VillagerMixin",
 		"VillagerGoalPackagesMixin"

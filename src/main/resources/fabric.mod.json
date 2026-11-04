@@ -5,13 +5,13 @@
 	"name": "VillageOptimized",
 	"description": "This is an example description! Tell everyone what your mod is about!",
 	"authors": [
-		"Me!"
+		"Polyaris"
 	],
 	"contact": {
 		"homepage": "https://fabricmc.net/",
 		"sources": "https://github.com/FabricMC/fabric-example-mod"
 	},
-	"license": "CC0-1.0",
+	"license": "GPL-3.0-only",
 	"icon": "assets/villageoptimized/icon.png",
 	"environment": "*",
 	"entrypoints": {
@@ -23,11 +23,7 @@
 		]
 	},
 	"mixins": [
-		"villageoptimized.mixins.json",
-		{
-			"config": "villageoptimized.client.mixins.json",
-			"environment": "client"
-		}
+		"villageoptimized.mixins.json"
 	],
 	"depends": {
 		"fabricloader": ">=0.20.1",
