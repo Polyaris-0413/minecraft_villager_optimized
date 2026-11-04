@@ -3,7 +3,7 @@
 	"id": "villageroptimized",
 	"version": "${version}",
 	"name": "VillagerOptimized",
-	"description": "Villagers no longer trample farmland, smiths repair damaged iron golems, and villagers regenerate health while sleeping.",
+	"description": "Expands villager-related mechanics",
 	"authors": [
 		"Polyaris"
 	],
