@@ -1,4 +1,4 @@
-package com.polyaris.village.mixin;
+package com.polyaris.villager.mixin;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
@@ -23,7 +23,7 @@ public class FarmBlockMixin {
 			target = "Lnet/minecraft/world/level/block/FarmBlock;turnToDirt(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)V"
 		)
 	)
-	private void villageoptimized$keepFarmlandFromVillagers(Entity entity, BlockState state, Level level, BlockPos pos) {
+	private void villageroptimized$keepFarmlandFromVillagers(Entity entity, BlockState state, Level level, BlockPos pos) {
 		if (!(entity instanceof Villager)) {
 			FarmBlock.turnToDirt(entity, state, level, pos);
 		}

@@ -1,8 +1,8 @@
 {
 	"schemaVersion": 1,
-	"id": "villageoptimized",
+	"id": "villageroptimized",
 	"version": "${version}",
-	"name": "VillageOptimized",
+	"name": "VillagerOptimized",
 	"description": "This is an example description! Tell everyone what your mod is about!",
 	"authors": [
 		"Polyaris"
@@ -12,15 +12,15 @@
 		"sources": "https://github.com/FabricMC/fabric-example-mod"
 	},
 	"license": "GPL-3.0-only",
-	"icon": "assets/villageoptimized/icon.png",
+	"icon": "assets/villageroptimized/icon.png",
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"com.polyaris.village.VillageOptimized"
+			"com.polyaris.villager.VillagerOptimized"
 		]
 	},
 	"mixins": [
-		"villageoptimized.mixins.json"
+		"villageroptimized.mixins.json"
 	],
 	"depends": {
 		"fabricloader": ">=0.20.1",

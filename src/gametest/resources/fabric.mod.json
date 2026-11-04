@@ -1,18 +1,18 @@
 {
 	"schemaVersion": 1,
-	"id": "villageoptimized-gametest",
+	"id": "villageroptimized-gametest",
 	"version": "1.0.0",
-	"name": "VillageOptimized Game Tests",
+	"name": "VillagerOptimized Game Tests",
 	"environment": "*",
 	"entrypoints": {
 		"fabric-gametest": [
-			"com.polyaris.village.gametest.VillageOptimizedGameTest"
+			"com.polyaris.villager.gametest.VillagerOptimizedGameTest"
 		]
 	},
 	"depends": {
 		"fabricloader": ">=0.20.1",
 		"minecraft": "~1.21.1",
 		"fabric-api": "*",
-		"villageoptimized": "*"
+		"villageroptimized": "*"
 	}
 }

@@ -1,4 +1,4 @@
-# VillageOptimized
+# VillagerOptimized
 
 ## Setup
 

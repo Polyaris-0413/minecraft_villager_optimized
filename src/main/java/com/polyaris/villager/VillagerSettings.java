@@ -1,4 +1,4 @@
-package com.polyaris.village;
+package com.polyaris.villager;
 
 import java.util.Set;
 
@@ -11,8 +11,8 @@ import net.minecraft.world.item.Items;
  * 本模组全部可调参数与行为开关的唯一来源，实现处只引用、不另写字面量。
  * 取值依据见 docs/superpowers/specs/2026-11-04-village-optimizations-design.md。
  */
-public final class VillageSettings {
-	private VillageSettings() {
+public final class VillagerSettings {
+	private VillagerSettings() {
 	}
 
 	/** 会主动修复铁傀儡的职业。 */

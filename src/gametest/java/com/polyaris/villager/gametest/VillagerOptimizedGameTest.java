@@ -1,4 +1,4 @@
-package com.polyaris.village.gametest;
+package com.polyaris.villager.gametest;
 
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
 import net.minecraft.core.BlockPos;
@@ -23,7 +23,7 @@ import net.minecraft.world.level.block.state.properties.BedPart;
  * 三条机制的集成测试，跑在服务端 GameTest 世界里（gradlew runGameTest）。
  * 结构模板用 Fabric API 提供的 8×8×8 空结构，地面由 {@link #buildFloor} 自己铺。
  */
-public class VillageOptimizedGameTest implements FabricGameTest {
+public class VillagerOptimizedGameTest implements FabricGameTest {
 	private static final int FLOOR_LAYER = 0;
 	private static final int FLOOR_SIZE = 8;
 

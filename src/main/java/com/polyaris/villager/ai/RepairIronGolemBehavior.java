@@ -1,4 +1,4 @@
-package com.polyaris.village.ai;
+package com.polyaris.villager.ai;
 
 import java.util.Comparator;
 import java.util.List;
@@ -8,7 +8,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.common.collect.ImmutableMap;
-import com.polyaris.village.VillageSettings;
+import com.polyaris.villager.VillagerSettings;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.Mth;
@@ -33,7 +33,7 @@ import org.jetbrains.annotations.Nullable;
 public class RepairIronGolemBehavior extends Behavior<Villager> {
 	/**
 	 * 正在修复的村民。原版 ShowTradesToPlayer 在玩家靠近时会每 tick 清空主手，
-	 * 所以要在实体 tick 末尾把铁锭放回去，见 {@link com.polyaris.village.mixin.VillagerMixin}。
+	 * 所以要在实体 tick 末尾把铁锭放回去，见 {@link com.polyaris.villager.mixin.VillagerMixin}。
 	 */
 	private static final Set<UUID> HOLDING_ITEM = ConcurrentHashMap.newKeySet();
 
@@ -46,7 +46,7 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 	private ItemStack previousMainHand = ItemStack.EMPTY;
 
 	public RepairIronGolemBehavior() {
-		super(ImmutableMap.of(), VillageSettings.GOLEM_REPAIR_BEHAVIOR_DURATION_TICKS);
+		super(ImmutableMap.of(), VillagerSettings.GOLEM_REPAIR_BEHAVIOR_DURATION_TICKS);
 	}
 
 	@Override
@@ -56,8 +56,8 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 			return false;
 		}
 
-		this.nextScanTime = now + VillageSettings.GOLEM_REPAIR_SCAN_INTERVAL_TICKS;
-		if (!VillageSettings.isGolemRepairer(villager.getVillagerData().getProfession()) || isUnavailable(villager)) {
+		this.nextScanTime = now + VillagerSettings.GOLEM_REPAIR_SCAN_INTERVAL_TICKS;
+		if (!VillagerSettings.isGolemRepairer(villager.getVillagerData().getProfession()) || isUnavailable(villager)) {
 			return false;
 		}
 
@@ -75,7 +75,7 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 			.orElse(Long.MIN_VALUE);
 		this.previousMainHand = villager.getMainHandItem().copy();
 		HOLDING_ITEM.add(villager.getUUID());
-		villager.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(VillageSettings.GOLEM_REPAIR_HELD_ITEM));
+		villager.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(VillagerSettings.GOLEM_REPAIR_HELD_ITEM));
 	}
 
 	@Override
@@ -88,18 +88,18 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 			return false;
 		}
 
-		if (villager.distanceToSqr(this.golem) > Mth.square(VillageSettings.GOLEM_REPAIR_SEARCH_RADIUS)) {
+		if (villager.distanceToSqr(this.golem) > Mth.square(VillagerSettings.GOLEM_REPAIR_SEARCH_RADIUS)) {
 			return false;
 		}
 
-		if (now - this.attemptStartTime > VillageSettings.GOLEM_REPAIR_ATTEMPT_TIMEOUT_TICKS) {
+		if (now - this.attemptStartTime > VillagerSettings.GOLEM_REPAIR_ATTEMPT_TIMEOUT_TICKS) {
 			return false;
 		}
 
 		Optional<Long> unreachableSince = villager.getBrain().getMemory(MemoryModuleType.CANT_REACH_WALK_TARGET_SINCE);
 		return unreachableSince.isEmpty()
 			|| unreachableSince.get() == this.unreachableSinceAtStart
-			|| now - unreachableSince.get() <= VillageSettings.GOLEM_REPAIR_UNREACHABLE_GIVE_UP_TICKS;
+			|| now - unreachableSince.get() <= VillagerSettings.GOLEM_REPAIR_UNREACHABLE_GIVE_UP_TICKS;
 	}
 
 	@Override
@@ -110,13 +110,13 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 
 		Brain<Villager> brain = villager.getBrain();
 		brain.setMemory(MemoryModuleType.LOOK_TARGET, new EntityTracker(this.golem, true));
-		if (villager.distanceToSqr(this.golem) > Mth.square(VillageSettings.GOLEM_REPAIR_REACH)) {
+		if (villager.distanceToSqr(this.golem) > Mth.square(VillagerSettings.GOLEM_REPAIR_REACH)) {
 			brain.setMemory(
 				MemoryModuleType.WALK_TARGET,
 				new WalkTarget(
 					new EntityTracker(this.golem, false),
-					VillageSettings.GOLEM_REPAIR_WALK_SPEED,
-					VillageSettings.GOLEM_REPAIR_WALK_CLOSE_ENOUGH
+					VillagerSettings.GOLEM_REPAIR_WALK_SPEED,
+					VillagerSettings.GOLEM_REPAIR_WALK_CLOSE_ENOUGH
 				)
 			);
 			return;
@@ -125,7 +125,7 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 		brain.eraseMemory(MemoryModuleType.WALK_TARGET);
 		if (now >= this.nextActionTime) {
 			repair();
-			this.nextActionTime = now + VillageSettings.GOLEM_REPAIR_ACTION_INTERVAL_TICKS;
+			this.nextActionTime = now + VillagerSettings.GOLEM_REPAIR_ACTION_INTERVAL_TICKS;
 		}
 	}
 
@@ -137,7 +137,7 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 		villager.setItemSlot(EquipmentSlot.MAINHAND, this.previousMainHand);
 		this.previousMainHand = ItemStack.EMPTY;
 		this.golem = null;
-		this.nextScanTime = now + VillageSettings.GOLEM_REPAIR_RETRY_COOLDOWN_TICKS;
+		this.nextScanTime = now + VillagerSettings.GOLEM_REPAIR_RETRY_COOLDOWN_TICKS;
 	}
 
 	private void repair() {
@@ -146,13 +146,13 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 		}
 
 		float healthBefore = this.golem.getHealth();
-		this.golem.heal(VillageSettings.GOLEM_REPAIR_AMOUNT);
+		this.golem.heal(VillagerSettings.GOLEM_REPAIR_AMOUNT);
 		if (this.golem.getHealth() > healthBefore) {
 			// 音高抖动与原版 IronGolem#mobInteract 的修复音效一致
 			float pitch = 1.0F
 				+ (this.golem.getRandom().nextFloat() - this.golem.getRandom().nextFloat())
-					* VillageSettings.GOLEM_REPAIR_SOUND_PITCH_JITTER;
-			this.golem.playSound(SoundEvents.IRON_GOLEM_REPAIR, VillageSettings.GOLEM_REPAIR_SOUND_VOLUME, pitch);
+					* VillagerSettings.GOLEM_REPAIR_SOUND_PITCH_JITTER;
+			this.golem.playSound(SoundEvents.IRON_GOLEM_REPAIR, VillagerSettings.GOLEM_REPAIR_SOUND_VOLUME, pitch);
 		}
 	}
 
@@ -162,7 +162,7 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 		}
 
 		Brain<Villager> brain = villager.getBrain();
-		for (Activity activity : VillageSettings.GOLEM_REPAIR_BLOCKED_ACTIVITIES) {
+		for (Activity activity : VillagerSettings.GOLEM_REPAIR_BLOCKED_ACTIVITIES) {
 			if (brain.isActive(activity)) {
 				return true;
 			}
@@ -173,7 +173,7 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 
 	@Nullable
 	private static IronGolem findHurtGolem(ServerLevel level, Villager villager) {
-		AABB searchArea = villager.getBoundingBox().inflate(VillageSettings.GOLEM_REPAIR_SEARCH_RADIUS);
+		AABB searchArea = villager.getBoundingBox().inflate(VillagerSettings.GOLEM_REPAIR_SEARCH_RADIUS);
 		List<IronGolem> candidates = level.getEntitiesOfClass(
 			IronGolem.class,
 			searchArea,

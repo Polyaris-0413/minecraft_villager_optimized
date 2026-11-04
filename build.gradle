@@ -13,7 +13,7 @@ repositories {
 
 loom {
 	mods {
-		"villageoptimized" {
+		"villageroptimized" {
 			sourceSet sourceSets.main
 		}
 	}
@@ -33,7 +33,7 @@ fabricApi {
 	// 服务端 GameTest：源码集固定为 src/gametest，跑起来用 gradlew runGameTest
 	configureTests {
 		getCreateSourceSet().set(true)
-		getModId().set("villageoptimized-gametest")
+		getModId().set("villageroptimized-gametest")
 		getEnableGameTests().set(true)
 		getEnableClientGameTests().set(false)
 	}

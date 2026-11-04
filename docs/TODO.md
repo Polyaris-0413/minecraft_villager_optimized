@@ -7,11 +7,11 @@
 - [ ] `fabric.mod.json` 的 `contact.homepage` / `contact.sources` 仍指向 Fabric 模板仓库，
       换成自己的链接；没有就删掉这两个字段
 - [ ] 重写 `README.md`（现在是 Fabric 模板的 Setup / License 说明）
-- [ ] 换掉模板图标 `src/main/resources/assets/villageoptimized/icon.png`
+- [ ] 换掉模板图标 `src/main/resources/assets/villageroptimized/icon.png`
 
 ## 可选增强
 
-- [ ] 参数外置成配置文件：现在集中在 `VillageSettings`，改数值要重新编译
+- [ ] 参数外置成配置文件：现在集中在 `VillagerSettings`，改数值要重新编译
 - [ ] 铁匠修复加限制：附近有敌对生物 / 夜晚 / 自己受伤时不修
       （参考 [Helpful Armorers](https://modrinth.com/mod/helpful-armorers)）
 - [ ] 只修"本村"的铁傀儡：按村庄 / POI 判断，而不只是 16 格距离

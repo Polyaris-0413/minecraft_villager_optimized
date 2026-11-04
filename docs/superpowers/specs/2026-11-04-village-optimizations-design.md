@@ -1,6 +1,6 @@
 # 村民行为优化 · 设计文档
 
-- 项目：`villageoptimized`（Fabric，Minecraft 1.21.1，官方 Mojang 映射）
+- 项目：`villageroptimized`（Fabric，Minecraft 1.21.1，官方 Mojang 映射）
 - 日期：2026-11-04
 - 状态：**已确认**——铁锭方案 B（不消耗物品）、睡眠回血方案 A（睡眠中每秒 +1）、数值按 §4.1
 
@@ -92,7 +92,7 @@ activeActivities）。
 
 ### 4.1 参数（唯一设计源）
 
-所有可调数值集中在 `com.polyaris.village.VillageSettings`，实现处只引用，不另写字面量。
+所有可调数值集中在 `com.polyaris.villager.VillagerSettings`，实现处只引用，不另写字面量。
 数值来源与对照（2026-11-04 联网核对）：
 
 - **铁傀儡 25 HP/次**：原版行为（`IronGolem#mobInteract` 的 `heal(25.0F)`），
@@ -132,13 +132,13 @@ activeActivities）。
 
 ### 4.3 需求二实现
 
-**新行为** `com.polyaris.village.ai.RepairIronGolemBehavior extends Behavior<Villager>`：
+**新行为** `com.polyaris.villager.ai.RepairIronGolemBehavior extends Behavior<Villager>`：
 
 - `checkExtraStartConditions`（每 tick 被调用）：先做过职业/状态判断，
   再按 20 tick 节流做一次 AABB 查询，选出"存活且未满血"的最近铁傀儡。
   若村民正在睡觉、交易，或处于 `PANIC` / `RAID` / `PRE_RAID` / `HIDE` 活动，直接不开始。
 - `start`：记录开始时间与初始的"不可达时间戳"（旧目标留下的时间戳不算数），
-  并把主手临时换成铁锭（`VillageSettings.GOLEM_REPAIR_HELD_ITEM`，只是视觉，不扣物品）。
+  并把主手临时换成铁锭（`VillagerSettings.GOLEM_REPAIR_HELD_ITEM`，只是视觉，不扣物品）。
 - `tick`：
   - 距离 > 2 格：写 `WALK_TARGET = new WalkTarget(new EntityTracker(golem, false), 0.5F, 1)`，
     由原版 `MoveToTargetSink` 寻路；`LOOK_TARGET` 跟随铁傀儡。
@@ -169,14 +169,14 @@ activeActivities）。
 
 ```
 src/main/java/com/polyaris/village/
-├── VillageSettings.java                     # 唯一设计源
+├── VillagerSettings.java                     # 唯一设计源
 ├── ai/RepairIronGolemBehavior.java          # 需求二
 └── mixin/
     ├── FarmBlockMixin.java                  # 需求一
     ├── VillagerMixin.java                   # 需求三
     └── VillagerGoalPackagesMixin.java       # 需求二（挂载）
-src/main/resources/villageoptimized.mixins.json  # 注册新 mixin
-src/gametest/java/com/polyaris/village/gametest/VillageOptimizedGameTest.java  # 三条机制的 GameTest
+src/main/resources/villageroptimized.mixins.json  # 注册新 mixin
+src/gametest/java/com/polyaris/village/gametest/VillagerOptimizedGameTest.java  # 三条机制的 GameTest
 src/gametest/resources/fabric.mod.json       # 测试模组（fabric-gametest 入口）
 build.gradle                                  # fabricApi.configureTests 配置
 docs/superpowers/specs/2026-11-04-village-optimizations-design.md
