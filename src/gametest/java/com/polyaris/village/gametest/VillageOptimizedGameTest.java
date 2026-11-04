@@ -7,11 +7,13 @@ import net.minecraft.core.GlobalPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.animal.IronGolem;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.npc.VillagerProfession;
 import net.minecraft.world.entity.npc.VillagerType;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.BedBlock;
 import net.minecraft.world.level.block.Blocks;
@@ -55,9 +57,11 @@ public class VillageOptimizedGameTest implements FabricGameTest {
 		);
 		IronGolem golem = helper.spawn(EntityType.IRON_GOLEM, 1, 1, 6);
 		golem.setHealth(40.0F);
+		// 模拟原版 ShowTradesToPlayer 清空主手：修复期间铁锭应当被重新放回手里
+		helper.runAfterDelay(30L, () -> smith.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY));
 		helper.runAfterDelay(40L, () -> helper.assertTrue(
 			smith.getMainHandItem().is(Items.IRON_INGOT),
-			"修复期间村民手上没有拿铁锭：" + smith.getMainHandItem()
+			"主手被清空后没有重新拿起铁锭：" + smith.getMainHandItem()
 		));
 		helper.succeedWhen(() -> helper.assertTrue(golem.getHealth() > 40.0F, "铁傀儡没有被修复，当前血量 " + golem.getHealth()));
 	}

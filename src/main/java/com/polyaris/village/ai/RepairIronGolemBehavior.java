@@ -3,6 +3,9 @@ package com.polyaris.village.ai;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.common.collect.ImmutableMap;
 import com.polyaris.village.VillageSettings;
@@ -32,6 +35,12 @@ import org.slf4j.LoggerFactory;
 public class RepairIronGolemBehavior extends Behavior<Villager> {
 	/** 临时排查日志：定位“看不到铁锭”后删除。 */
 	private static final Logger LOGGER = LoggerFactory.getLogger("villageoptimized-repair");
+
+	/**
+	 * 正在修复的村民。原版 ShowTradesToPlayer 在玩家靠近时会每 tick 清空主手，
+	 * 所以需要在实体 tick 末尾把铁锭放回去，详见 {@link #isHoldingRepairItem}。
+	 */
+	private static final Set<UUID> HOLDING_ITEM = ConcurrentHashMap.newKeySet();
 
 	@Nullable
 	private IronGolem golem;
@@ -91,6 +100,7 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 			.getMemory(MemoryModuleType.CANT_REACH_WALK_TARGET_SINCE)
 			.orElse(Long.MIN_VALUE);
 		this.previousMainHand = villager.getMainHandItem().copy();
+		HOLDING_ITEM.add(villager.getUUID());
 		villager.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(VillageSettings.GOLEM_REPAIR_HELD_ITEM));
 		LOGGER.info(
 			"repair start: villager={} prof={} pos={} golem={} golemHp={} mainHand={}",
@@ -166,6 +176,7 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 		);
 		villager.getBrain().eraseMemory(MemoryModuleType.WALK_TARGET);
 		villager.getBrain().eraseMemory(MemoryModuleType.LOOK_TARGET);
+		HOLDING_ITEM.remove(villager.getUUID());
 		villager.setItemSlot(EquipmentSlot.MAINHAND, this.previousMainHand);
 		this.previousMainHand = ItemStack.EMPTY;
 		this.golem = null;
@@ -219,5 +230,15 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 			golem -> golem.isAlive() && golem.getHealth() < golem.getMaxHealth()
 		);
 		return candidates.stream().min(Comparator.comparingDouble(villager::distanceToSqr)).orElse(null);
+	}
+
+	/** 修复期间该村民的主手应当一直拿着铁锭。 */
+	public static boolean isHoldingRepairItem(Villager villager) {
+		return HOLDING_ITEM.contains(villager.getUUID());
+	}
+
+	/** 村民死亡等异常结束时清理标记，避免集合里留下失效的 UUID。 */
+	public static void forgetHoldingRepairItem(Villager villager) {
+		HOLDING_ITEM.remove(villager.getUUID());
 	}
 }
