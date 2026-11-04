@@ -11,6 +11,7 @@ A lightweight Fabric mod for Minecraft 1.21.1, aimed at expanding villager-relat
 ## Installation
 
 
+
 ## License
 
 GPL-3.0-only — see [LICENSE](LICENSE).
