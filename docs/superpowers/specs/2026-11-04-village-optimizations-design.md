@@ -13,7 +13,8 @@
 3. **村民睡眠时恢复生命**（原版无此机制，见 §2.4）。
 
 非目标：不做配置文件 / 游戏内 UI；不改交易、掉落、村庄生成；不改变原版其它数值；
-不阻止铁傀儡、其它生物踩坏耕地。
+不阻止铁傀儡、其它生物踩坏耕地。模组定位为服务端 MOD，没有客户端入口或自定义渲染代码
+（村民手持铁锭直接复用原版 `CrossedArmsItemLayer`）。
 
 ## 2. 原版现状调研（1.21.1 反编译源码核对）
 
@@ -136,7 +137,8 @@ activeActivities）。
 - `checkExtraStartConditions`（每 tick 被调用）：先做过职业/状态判断，
   再按 20 tick 节流做一次 AABB 查询，选出"存活且未满血"的最近铁傀儡。
   若村民正在睡觉、交易，或处于 `PANIC` / `RAID` / `PRE_RAID` / `HIDE` 活动，直接不开始。
-- `start`：记录开始时间与初始的"不可达时间戳"（旧目标留下的时间戳不算数）。
+- `start`：记录开始时间与初始的"不可达时间戳"（旧目标留下的时间戳不算数），
+  并把主手临时换成铁锭（`VillageSettings.GOLEM_REPAIR_HELD_ITEM`，只是视觉，不扣物品）。
 - `tick`：
   - 距离 > 2 格：写 `WALK_TARGET = new WalkTarget(new EntityTracker(golem, false), 0.5F, 1)`，
     由原版 `MoveToTargetSink` 寻路；`LOOK_TARGET` 跟随铁傀儡。
@@ -144,7 +146,7 @@ activeActivities）。
     `golem.heal(25)`，并在铁傀儡处播放 `IRON_GOLEM_REPAIR`（音高与原版同款随机抖动）。
 - `canStillUse`：目标死亡/移除/满血、睡觉或交易、距离超过 16 格、超过 600 tick、
   或寻路判定不可达超过 60 tick —— 任一成立即结束。
-- `stop`：清 `WALK_TARGET` / `LOOK_TARGET`，置 100 tick 冷却。
+- `stop`：清 `WALK_TARGET` / `LOOK_TARGET`，把主手物品换回原来的，置 100 tick 冷却。
 
 **挂载** `mixin/VillagerGoalPackagesMixin`：`@Inject` 到 `VillagerGoalPackages#getCorePackage`
 `RETURN`，把该行为以优先级 1 插到行为包最前面。CORE 是常驻活动，所以工作/闲逛/开会/休息
@@ -208,4 +210,4 @@ docs/superpowers/specs/2026-11-04-village-optimizations-design.md
 
 - 仅支持 1.21.1：mixin 目标使用官方映射方法名，跨版本会失效。
 - 与其它改写村民 Brain 行为包的模组可能叠加冲突（本模组只往 CORE 包前插一条行为，风险低）。
-- 修复不消耗铁锭，属于纯增益；若以后想加消耗，可在 `repair()` 里补扣物品与拾取白名单。
+- 修复不消耗铁锭，属于纯增益（手上的铁锭只是视觉）；若以后想加消耗，可在 `repair()` 里补扣物品与拾取白名单。

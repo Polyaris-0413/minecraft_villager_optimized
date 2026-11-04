@@ -4,6 +4,8 @@ import java.util.Set;
 
 import net.minecraft.world.entity.npc.VillagerProfession;
 import net.minecraft.world.entity.schedule.Activity;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 
 /**
  * 本模组全部可调参数与行为开关的唯一来源，实现处只引用、不另写字面量。
@@ -36,6 +38,9 @@ public final class VillageSettings {
 
 	/** 单次修复恢复的生命值，与原版玩家手持铁锭右键铁傀儡一致。 */
 	public static final float GOLEM_REPAIR_AMOUNT = 25.0F;
+
+	/** 修复期间村民手上显示的物品（纯视觉，不消耗）。 */
+	public static final Item GOLEM_REPAIR_HELD_ITEM = Items.IRON_INGOT;
 
 	/** 村民搜索受伤铁傀儡的半径（格）。 */
 	public static final double GOLEM_REPAIR_SEARCH_RADIUS = 16.0;

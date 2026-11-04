@@ -9,6 +9,7 @@ import com.polyaris.village.VillageSettings;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.behavior.Behavior;
 import net.minecraft.world.entity.ai.behavior.EntityTracker;
@@ -17,6 +18,7 @@ import net.minecraft.world.entity.ai.memory.WalkTarget;
 import net.minecraft.world.entity.animal.IronGolem;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.schedule.Activity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.Nullable;
 
@@ -32,6 +34,7 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 	private long nextActionTime;
 	private long nextScanTime;
 	private long unreachableSinceAtStart = Long.MIN_VALUE;
+	private ItemStack previousMainHand = ItemStack.EMPTY;
 
 	public RepairIronGolemBehavior() {
 		super(ImmutableMap.of(), VillageSettings.GOLEM_REPAIR_BEHAVIOR_DURATION_TICKS);
@@ -61,6 +64,8 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 		this.unreachableSinceAtStart = villager.getBrain()
 			.getMemory(MemoryModuleType.CANT_REACH_WALK_TARGET_SINCE)
 			.orElse(Long.MIN_VALUE);
+		this.previousMainHand = villager.getMainHandItem().copy();
+		villager.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(VillageSettings.GOLEM_REPAIR_HELD_ITEM));
 	}
 
 	@Override
@@ -118,6 +123,8 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 	protected void stop(ServerLevel level, Villager villager, long now) {
 		villager.getBrain().eraseMemory(MemoryModuleType.WALK_TARGET);
 		villager.getBrain().eraseMemory(MemoryModuleType.LOOK_TARGET);
+		villager.setItemSlot(EquipmentSlot.MAINHAND, this.previousMainHand);
+		this.previousMainHand = ItemStack.EMPTY;
 		this.golem = null;
 		this.nextScanTime = now + VillageSettings.GOLEM_REPAIR_RETRY_COOLDOWN_TICKS;
 	}

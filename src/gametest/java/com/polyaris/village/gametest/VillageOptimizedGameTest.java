@@ -12,6 +12,7 @@ import net.minecraft.world.entity.animal.IronGolem;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.npc.VillagerProfession;
 import net.minecraft.world.entity.npc.VillagerType;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.BedBlock;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.properties.BedPart;
@@ -54,6 +55,10 @@ public class VillageOptimizedGameTest implements FabricGameTest {
 		);
 		IronGolem golem = helper.spawn(EntityType.IRON_GOLEM, 1, 1, 6);
 		golem.setHealth(40.0F);
+		helper.runAfterDelay(40L, () -> helper.assertTrue(
+			smith.getMainHandItem().is(Items.IRON_INGOT),
+			"修复期间村民手上没有拿铁锭：" + smith.getMainHandItem()
+		));
 		helper.succeedWhen(() -> helper.assertTrue(golem.getHealth() > 40.0F, "铁傀儡没有被修复，当前血量 " + golem.getHealth()));
 	}
 
