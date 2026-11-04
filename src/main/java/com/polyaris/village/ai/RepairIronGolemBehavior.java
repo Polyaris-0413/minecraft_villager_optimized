@@ -21,6 +21,8 @@ import net.minecraft.world.entity.schedule.Activity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 铁匠职业的村民在附近铁傀儡受伤时前往修复。
@@ -28,6 +30,9 @@ import org.jetbrains.annotations.Nullable;
  * 由原版的 MoveToTargetSink 负责实际寻路。
  */
 public class RepairIronGolemBehavior extends Behavior<Villager> {
+	/** 临时排查日志：定位“看不到铁锭”后删除。 */
+	private static final Logger LOGGER = LoggerFactory.getLogger("villageoptimized-repair");
+
 	@Nullable
 	private IronGolem golem;
 	private long attemptStartTime;
@@ -35,6 +40,7 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 	private long nextScanTime;
 	private long unreachableSinceAtStart = Long.MIN_VALUE;
 	private ItemStack previousMainHand = ItemStack.EMPTY;
+	private long nextDiagnosticLogTime;
 
 	public RepairIronGolemBehavior() {
 		super(ImmutableMap.of(), VillageSettings.GOLEM_REPAIR_BEHAVIOR_DURATION_TICKS);
@@ -48,7 +54,27 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 		}
 
 		this.nextScanTime = now + VillageSettings.GOLEM_REPAIR_SCAN_INTERVAL_TICKS;
-		if (!VillageSettings.isGolemRepairer(villager.getVillagerData().getProfession()) || isUnavailable(villager)) {
+		if (!VillageSettings.isGolemRepairer(villager.getVillagerData().getProfession())) {
+			return false;
+		}
+
+		if (now >= this.nextDiagnosticLogTime) {
+			this.nextDiagnosticLogTime = now + 200;
+			IronGolem nearby = findHurtGolem(level, villager);
+			LOGGER.info(
+				"repair scan: villager={} prof={} pos={} sleeping={} trading={} unavailable={} hurtGolem={} golemHp={}",
+				villager.getUUID(),
+				villager.getVillagerData().getProfession(),
+				villager.blockPosition(),
+				villager.isSleeping(),
+				villager.isTrading(),
+				isUnavailable(villager),
+				nearby == null ? "-" : nearby.getUUID(),
+				nearby == null ? -1.0F : nearby.getHealth()
+			);
+		}
+
+		if (isUnavailable(villager)) {
 			return false;
 		}
 
@@ -66,6 +92,15 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 			.orElse(Long.MIN_VALUE);
 		this.previousMainHand = villager.getMainHandItem().copy();
 		villager.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(VillageSettings.GOLEM_REPAIR_HELD_ITEM));
+		LOGGER.info(
+			"repair start: villager={} prof={} pos={} golem={} golemHp={} mainHand={}",
+			villager.getUUID(),
+			villager.getVillagerData().getProfession(),
+			villager.blockPosition(),
+			this.golem.getUUID(),
+			this.golem.getHealth(),
+			villager.getMainHandItem()
+		);
 	}
 
 	@Override
@@ -121,6 +156,14 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 
 	@Override
 	protected void stop(ServerLevel level, Villager villager, long now) {
+		LOGGER.info(
+			"repair stop: villager={} pos={} golemHp={} elapsed={} mainHandBeforeRestore={}",
+			villager.getUUID(),
+			villager.blockPosition(),
+			this.golem == null ? -1.0F : this.golem.getHealth(),
+			now - this.attemptStartTime,
+			villager.getMainHandItem()
+		);
 		villager.getBrain().eraseMemory(MemoryModuleType.WALK_TARGET);
 		villager.getBrain().eraseMemory(MemoryModuleType.LOOK_TARGET);
 		villager.setItemSlot(EquipmentSlot.MAINHAND, this.previousMainHand);
@@ -136,6 +179,13 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 
 		float healthBefore = this.golem.getHealth();
 		this.golem.heal(VillageSettings.GOLEM_REPAIR_AMOUNT);
+		LOGGER.info(
+			"repair tick: villager={} golem={} hp {} -> {}",
+			villager.getUUID(),
+			this.golem.getUUID(),
+			healthBefore,
+			this.golem.getHealth()
+		);
 		if (this.golem.getHealth() > healthBefore) {
 			// 音高抖动与原版 IronGolem#mobInteract 的修复音效一致
 			float pitch = 1.0F
