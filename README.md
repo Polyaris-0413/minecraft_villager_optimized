@@ -9,8 +9,7 @@ A lightweight Fabric mod for Minecraft 1.21.1, aimed at expanding villager-relat
 - Armorer, Toolsmith, and Weaponsmith villagers can repair Iron Golems.
 
 ## Installation
-
-
+You can get the mod file from [GitHub Releases](https://github.com/Polyaris-0413/minecraft_villager_optimized/releases/latest) or Modrinth, and place it in the corresponding game directory.
 
 ## License
 
