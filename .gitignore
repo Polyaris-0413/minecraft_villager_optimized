@@ -38,3 +38,12 @@ hs_err_*.log
 replay_*.log
 *.hprof
 *.jfr
+
+# os / editor junk
+
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*.orig
+*.rej

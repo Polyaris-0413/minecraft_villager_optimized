@@ -9,7 +9,7 @@ import net.minecraft.world.item.Items;
 
 /**
  * 本模组全部可调参数与行为开关的唯一来源，实现处只引用、不另写字面量。
- * 取值依据见 docs/superpowers/specs/2026-11-04-village-optimizations-design.md。
+ * 数值与原版对齐（单个铁锭 25 HP、睡眠 1 HP/秒），其余为手感取值。
  */
 public final class VillagerSettings {
 	private VillagerSettings() {

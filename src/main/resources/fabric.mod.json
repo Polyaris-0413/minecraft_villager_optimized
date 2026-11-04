@@ -3,13 +3,13 @@
 	"id": "villageroptimized",
 	"version": "${version}",
 	"name": "VillagerOptimized",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"description": "Villagers no longer trample farmland, smiths repair damaged iron golems, and villagers regenerate health while sleeping.",
 	"authors": [
 		"Polyaris"
 	],
 	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
+		"homepage": "https://github.com/Polyaris-0413/minecraft_villager_optimized",
+		"sources": "https://github.com/Polyaris-0413/minecraft_villager_optimized"
 	},
 	"license": "GPL-3.0-only",
 	"icon": "assets/villageroptimized/icon.png",
