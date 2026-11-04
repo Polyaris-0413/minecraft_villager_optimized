@@ -10,7 +10,7 @@ A lightweight Fabric mod for Minecraft 1.21.1 that expands villager-related mech
 
 ## Installation
 
-You can get the mod file from [GitHub Releases](https://github.com/Polyaris-0413/minecraft_villager_optimized/releases/latest) or Modrinth, and place it in the corresponding game directory
+You can get the mod file from [GitHub Releases](https://github.com/Polyaris-0413/minecraft_villager_optimized/releases/latest) or [Modrinth](https://modrinth.com/mod/villager_optimized), and place it in the corresponding game directory
 
 ## License
 
