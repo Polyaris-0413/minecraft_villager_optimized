@@ -148,6 +148,11 @@ activeActivities）。
   或寻路判定不可达超过 60 tick —— 任一成立即结束。
 - `stop`：清 `WALK_TARGET` / `LOOK_TARGET`，把主手物品换回原来的，置 100 tick 冷却。
 
+**主手铁锭的保持**：原版 `ShowTradesToPlayer` 在玩家靠近（`INTERACTION_TARGET` 存在）且手上没有
+匹配交易物品时，每 tick 调 `clearHeldItem` 把主手设成空气，会把我们的铁锭顶掉——玩家一走近就看不见。
+因此行为用一个“正在修复”的 UUID 集合标记村民，`VillagerMixin` 在 `Villager#tick` 的 TAIL
+（一定晚于 brain tick）把铁锭放回去；结束或死亡时移除标记。
+
 **挂载** `mixin/VillagerGoalPackagesMixin`：`@Inject` 到 `VillagerGoalPackages#getCorePackage`
 `RETURN`，把该行为以优先级 1 插到行为包最前面。CORE 是常驻活动，所以工作/闲逛/开会/休息
 时都能响应；优先级高于工作、闲逛（5）与交易跟随（3），但低于 `VillagerPanicTrigger`（0）。
@@ -204,6 +209,7 @@ docs/superpowers/specs/2026-11-04-village-optimizations-design.md
 | 职业过滤 | 农民 + 6 格外的 40 HP 铁傀儡 | 6 秒内血量保持 40 |
 | 范围过滤 | 工具匠 + 20 格外的 40 HP 铁傀儡 | 6 秒内血量保持 40 |
 | 睡眠回血 | 睡在床上的 5 HP 村民 | 约 7 秒后 12 HP，继续睡至 20 HP 封顶 |
+| 修复时手持铁锭 | 实机日志 + GameTest | 修复期间主手为铁锭；被 `ShowTradesToPlayer` 清空后同一 tick 内被 mixin 放回，修满/放弃后恢复原物品 |
 
 
 ## 7. 风险与限制
