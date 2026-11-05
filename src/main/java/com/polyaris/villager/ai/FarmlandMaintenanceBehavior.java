@@ -11,7 +11,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.FluidTags;
-import net.minecraft.util.Mth;
 import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.behavior.Behavior;
 import net.minecraft.world.entity.ai.behavior.BlockPosTracker;
@@ -29,10 +28,13 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * 农民维护工作站点（堆肥桶）周围的水浇地：把水源覆盖范围内的裸露泥土翻回耕地。
+ * 农民维护身边的水浇地：把水源覆盖范围内的裸露泥土翻回耕地。
+ * 扫描范围与原版 HarvestFarmland 的 3×3×3 一致，只修它马上能补种的泥土，
+ * 不会把远处农民走不到的泥土也翻成耕地。
  * 范围判定复用原版 {@link FarmBlock} 的润湿规则，所以修完的耕地不会因缺水再次退化；
  * 被方块盖住或已经不再是泥土的位置不会被选中，符合“无法修复就跳过”的要求。
  * 只注册在 WORK 行为包里，因此只在白天、有工作站点时生效。
+ * 翻地前必须站到目标方块正上方，不能隔着几格动手。
  */
 public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 	@Nullable
@@ -71,12 +73,8 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 			return false;
 		}
 
-		Optional<GlobalPos> jobSite = villager.getBrain().getMemory(MemoryModuleType.JOB_SITE);
-		if (jobSite.isEmpty()) {
-			return false;
-		}
-
-		this.target = findTarget(level, villager, jobSite.get().pos(), now);
+		// 与原版 HarvestFarmland 一样只看农民身边的 3×3×3，只修它下一步就能补种的泥土
+		this.target = findTarget(level, villager, villager.blockPosition(), now);
 		return this.target != null;
 	}
 
@@ -120,7 +118,7 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 
 		Brain<Villager> brain = villager.getBrain();
 		brain.setMemory(MemoryModuleType.LOOK_TARGET, new BlockPosTracker(this.target));
-		if (villager.distanceToSqr(Vec3.atCenterOf(this.target)) > Mth.square(VillagerSettings.FARMLAND_MAINTENANCE_REACH)) {
+		if (!isStandingOn(villager, this.target)) {
 			walkTo(villager);
 			return;
 		}
@@ -152,14 +150,19 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 			return;
 		}
 
+		// 目标方块本身是实心的，寻路必须指向它正上方那一格，村民才会站到方块上
 		villager.getBrain().setMemory(
 			MemoryModuleType.WALK_TARGET,
 			new WalkTarget(
-				new BlockPosTracker(this.target),
+				new BlockPosTracker(this.target.above()),
 				VillagerSettings.FARMLAND_MAINTENANCE_WALK_SPEED,
 				VillagerSettings.FARMLAND_MAINTENANCE_WALK_CLOSE_ENOUGH
 			)
 		);
+	}
+
+	private static boolean isStandingOn(Villager villager, BlockPos pos) {
+		return villager.onGround() && villager.blockPosition().below().equals(pos);
 	}
 
 	private static boolean canMaintain(ServerLevel level, Villager villager) {

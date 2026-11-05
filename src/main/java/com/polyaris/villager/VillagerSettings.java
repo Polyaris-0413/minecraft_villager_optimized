@@ -78,11 +78,11 @@ public final class VillagerSettings {
 	/** 会维护水浇地的职业。 */
 	public static final VillagerProfession FARMLAND_MAINTENANCE_PROFESSION = VillagerProfession.FARMER;
 
-	/** 以工作站点（堆肥桶）为圆心搜索泥土的水平半径（格）。 */
-	public static final int FARMLAND_MAINTENANCE_SEARCH_RADIUS = 16;
+	/** 以农民自身为圆心搜索泥土的水平半径（格）；与原版 HarvestFarmland 的 3×3×3 工作范围一致。 */
+	public static final int FARMLAND_MAINTENANCE_SEARCH_RADIUS = 1;
 
-	/** 以工作站点为圆心搜索泥土的竖直半径（格）；农田通常与堆肥桶同层。 */
-	public static final int FARMLAND_MAINTENANCE_VERTICAL_RADIUS = 2;
+	/** 以农民自身为圆心搜索泥土的竖直半径（格），同样对齐 3×3×3。 */
+	public static final int FARMLAND_MAINTENANCE_VERTICAL_RADIUS = 1;
 
 	/** 原版耕地的润湿半径（格），与 FarmBlock#isNearWater 的扫描范围一致。 */
 	public static final int FARMLAND_HYDRATION_RADIUS = 4;
@@ -111,14 +111,11 @@ public final class VillagerSettings {
 	/** 走向待翻泥土的速度修正，与村民工作、闲逛一致。 */
 	public static final float FARMLAND_MAINTENANCE_WALK_SPEED = 0.5F;
 
-	/** 村民近身翻地的距离（格）。 */
-	public static final double FARMLAND_MAINTENANCE_REACH = 2.0;
-
-	/** 走向目标时，离目标多近算“到了”（格）。 */
-	public static final int FARMLAND_MAINTENANCE_WALK_CLOSE_ENOUGH = 1;
+	/** 走向目标时，离目标多近算“到了”（格）；0 表示必须站到目标方块正上方。 */
+	public static final int FARMLAND_MAINTENANCE_WALK_CLOSE_ENOUGH = 0;
 
 	/** 维护田地期间手上显示的工具（纯视觉，不消耗）。 */
-	public static final Item FARMLAND_MAINTENANCE_HELD_ITEM = Items.IRON_SHOVEL;
+	public static final Item FARMLAND_MAINTENANCE_HELD_ITEM = Items.IRON_HOE;
 
 	/** 翻地音效音量，与玩家手持锄头一致。 */
 	public static final float FARMLAND_MAINTENANCE_SOUND_VOLUME = 1.0F;

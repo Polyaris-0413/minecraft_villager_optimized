@@ -99,7 +99,19 @@ public class VillagerOptimizedGameTest implements FabricGameTest {
 		helper.setBlock(4, 1, 4, Blocks.DIRT);
 		placeContainedWater(helper, 5, 1, 5);
 		helper.setDayTime(2000);
-		spawnFarmerWithComposter(helper, 1, 1, 1, new BlockPos(2, 1, 2));
+		Villager farmer = spawnFarmerWithComposter(helper, 4, 2, 4, new BlockPos(2, 1, 2));
+		BlockPos absoluteTarget = helper.absolutePos(new BlockPos(4, 1, 4));
+		// 翻地那一刻必须站在目标方块上，而不是隔着两格就动手
+		helper.failIfEver(() -> {
+			if (helper.getLevel().getBlockState(absoluteTarget).is(Blocks.FARMLAND)) {
+				// 耕地高 15/16，站上去后脚会陷进目标方块那一格，所以两种位置都算站对了
+				BlockPos feet = farmer.blockPosition();
+				helper.assertTrue(
+					feet.equals(absoluteTarget) || feet.equals(absoluteTarget.above()),
+					"农民没有站到目标方块上就翻地了：" + feet + "，目标：" + absoluteTarget
+				);
+			}
+		});
 		// 水在则修完不会因缺水退化，所以湿度应当直接是最大值
 		helper.succeedWhen(() -> {
 			helper.assertBlockPresent(Blocks.FARMLAND, 4, 1, 4);
@@ -107,18 +119,18 @@ public class VillagerOptimizedGameTest implements FabricGameTest {
 		});
 	}
 
-	/** 维护期间农民主手应拿着铁锹，而不是空手修复。 */
+	/** 维护期间农民主手应拿着铁锄，而不是空手修复。 */
 	@GameTest(template = FabricGameTest.EMPTY_STRUCTURE, timeoutTicks = 600, batch = "farmerBatch")
-	public void farmerHoldsShovelWhileMaintainingFarmland(GameTestHelper helper) {
+	public void farmerHoldsHoeWhileMaintainingFarmland(GameTestHelper helper) {
 		buildFloor(helper, Blocks.STONE);
 		helper.setBlock(2, 1, 2, Blocks.COMPOSTER);
 		helper.setBlock(4, 1, 4, Blocks.DIRT);
 		placeContainedWater(helper, 5, 1, 5);
 		helper.setDayTime(2000);
-		Villager farmer = spawnFarmerWithComposter(helper, 1, 1, 1, new BlockPos(2, 1, 2));
+		Villager farmer = spawnFarmerWithComposter(helper, 3, 1, 4, new BlockPos(2, 1, 2));
 		helper.succeedWhen(() -> helper.assertTrue(
-			farmer.getMainHandItem().is(Items.IRON_SHOVEL),
-			"农民维护田地时没有拿着铁锹：" + farmer.getMainHandItem()
+			farmer.getMainHandItem().is(Items.IRON_HOE),
+			"农民维护田地时没有拿着铁锄：" + farmer.getMainHandItem()
 		));
 	}
 
@@ -131,7 +143,7 @@ public class VillagerOptimizedGameTest implements FabricGameTest {
 		helper.setBlock(4, 2, 4, Blocks.STONE);
 		placeContainedWater(helper, 5, 1, 5);
 		helper.setDayTime(2000);
-		spawnFarmerWithComposter(helper, 1, 1, 1, new BlockPos(2, 1, 2));
+		spawnFarmerWithComposter(helper, 3, 1, 4, new BlockPos(2, 1, 2));
 		helper.runAfterDelay(200L, () -> {
 			helper.assertBlockPresent(Blocks.DIRT, 4, 1, 4);
 			helper.succeed();
@@ -145,7 +157,7 @@ public class VillagerOptimizedGameTest implements FabricGameTest {
 		helper.setBlock(2, 1, 2, Blocks.COMPOSTER);
 		helper.setBlock(4, 1, 4, Blocks.DIRT);
 		helper.setDayTime(2000);
-		spawnFarmerWithComposter(helper, 1, 1, 1, new BlockPos(2, 1, 2));
+		spawnFarmerWithComposter(helper, 3, 1, 4, new BlockPos(2, 1, 2));
 		helper.runAfterDelay(200L, () -> {
 			helper.assertBlockPresent(Blocks.DIRT, 4, 1, 4);
 			helper.succeed();
@@ -159,7 +171,7 @@ public class VillagerOptimizedGameTest implements FabricGameTest {
 		helper.setBlock(4, 1, 4, Blocks.DIRT);
 		placeContainedWater(helper, 5, 1, 5);
 		helper.setDayTime(2000);
-		Villager farmer = helper.spawn(EntityType.VILLAGER, 1, 1, 1);
+		Villager farmer = helper.spawn(EntityType.VILLAGER, 3, 1, 4);
 		farmer.setVillagerData(farmer.getVillagerData().setType(VillagerType.PLAINS).setProfession(VillagerProfession.FARMER));
 		// 职业改了但没有任何工作站点，WORK 活动不会激活
 		farmer.refreshBrain(helper.getLevel());
