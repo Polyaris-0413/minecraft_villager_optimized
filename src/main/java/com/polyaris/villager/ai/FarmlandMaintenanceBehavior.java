@@ -39,13 +39,12 @@ import org.jetbrains.annotations.Nullable;
 public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 	@Nullable
 	private BlockPos target;
-	private long attemptStartTime;
+	private long lastProgressTime;
 	private long nextScanTime;
 	private long unreachableSinceAtStart = Long.MIN_VALUE;
 	@Nullable
 	private BlockPos ignoredTarget;
 	private long ignoreUntil;
-	private boolean tilled;
 	private ItemStack previousMainHand = ItemStack.EMPTY;
 
 	public FarmlandMaintenanceBehavior() {
@@ -75,11 +74,10 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 
 	@Override
 	protected void start(ServerLevel level, Villager villager, long now) {
-		this.attemptStartTime = now;
+		this.lastProgressTime = now;
 		this.unreachableSinceAtStart = villager.getBrain()
 			.getMemory(MemoryModuleType.CANT_REACH_WALK_TARGET_SINCE)
 			.orElse(Long.MIN_VALUE);
-		this.tilled = false;
 		this.previousMainHand = villager.getMainHandItem().copy();
 		VillagerHeldItem.hold(villager, VillagerSettings.FARMLAND_MAINTENANCE_HELD_ITEM);
 		walkTo(villager);
@@ -87,15 +85,12 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 
 	@Override
 	protected boolean canStillUse(ServerLevel level, Villager villager, long now) {
-		if (this.target == null || this.tilled) {
+		// 连续工作：每翻一块就重新找下一块，不因为“翻完一块”而结束、给原版把农民拉回工作点的机会
+		if (now - this.lastProgressTime > VillagerSettings.FARMLAND_MAINTENANCE_ATTEMPT_TIMEOUT_TICKS) {
 			return false;
 		}
 
-		if (now - this.attemptStartTime > VillagerSettings.FARMLAND_MAINTENANCE_ATTEMPT_TIMEOUT_TICKS) {
-			return false;
-		}
-
-		if (!canMaintain(level, villager) || !isEligible(level, this.target)) {
+		if (!canMaintain(level, villager)) {
 			return false;
 		}
 
@@ -107,11 +102,20 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 
 	@Override
 	protected void tick(ServerLevel level, Villager villager, long now) {
-		if (this.target == null) {
-			return;
+		Brain<Villager> brain = villager.getBrain();
+		if (this.target == null || !isEligible(level, this.target)) {
+			this.target = null;
+			if (now < this.nextScanTime) {
+				return;
+			}
+
+			this.nextScanTime = now + VillagerSettings.FARMLAND_MAINTENANCE_SCAN_INTERVAL_TICKS;
+			this.target = findTarget(level, villager, villager.blockPosition(), now);
+			if (this.target == null) {
+				return;
+			}
 		}
 
-		Brain<Villager> brain = villager.getBrain();
 		brain.setMemory(MemoryModuleType.LOOK_TARGET, new BlockPosTracker(this.target));
 		if (!isStandingOn(villager, this.target)) {
 			walkTo(villager);
@@ -119,7 +123,12 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 		}
 
 		brain.eraseMemory(MemoryModuleType.WALK_TARGET);
-		this.tilled = till(level, villager, this.target);
+		if (till(level, villager, this.target)) {
+			// 立刻准备下一块，避免停下来的那一拍被原版的“回工作点”牵引
+			this.lastProgressTime = now;
+			this.target = null;
+			this.nextScanTime = now;
+		}
 	}
 
 	@Override
@@ -129,14 +138,13 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 		brain.eraseMemory(MemoryModuleType.LOOK_TARGET);
 		VillagerHeldItem.release(villager, this.previousMainHand);
 		this.previousMainHand = ItemStack.EMPTY;
-		if (!this.tilled && this.target != null && isEligible(level, this.target)) {
+		if (this.target != null && isEligible(level, this.target)) {
 			// 目标仍然有效却没修完，多半是走不过去；短时间内别再反复选它
 			this.ignoredTarget = this.target;
 			this.ignoreUntil = now + VillagerSettings.FARMLAND_MAINTENANCE_IGNORE_TICKS;
 		}
 
 		this.target = null;
-		this.tilled = false;
 		this.nextScanTime = now + VillagerSettings.FARMLAND_MAINTENANCE_RETRY_COOLDOWN_TICKS;
 	}
 

@@ -96,7 +96,7 @@ public final class VillagerSettings {
 	/** 维护行为的兜底时长（tick）；真正是否继续由 canStillUse 判断。 */
 	public static final int FARMLAND_MAINTENANCE_BEHAVIOR_DURATION_TICKS = 600;
 
-	/** 单次维护尝试的最长跟随时间（tick）。 */
+	/** 连续维护期间超过这么久没有翻到任何一块，就结束本次会话（翻到一块会重置）。 */
 	public static final int FARMLAND_MAINTENANCE_ATTEMPT_TIMEOUT_TICKS = 600;
 
 	/** 寻路判定不可达后允许继续尝试的时间（tick），超过就放弃本次。 */
