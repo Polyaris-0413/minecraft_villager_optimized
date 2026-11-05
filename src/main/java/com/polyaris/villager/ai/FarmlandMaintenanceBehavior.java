@@ -28,9 +28,7 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * 农民维护身边的水浇地：把水源覆盖范围内的裸露泥土翻回耕地。
- * 扫描范围与原版 HarvestFarmland 的 3×3×3 一致，只修它马上能补种的泥土，
- * 不会把远处农民走不到的泥土也翻成耕地。
+ * 农民维护工作站点（堆肥桶）周围的水浇地：把水源覆盖范围内的裸露泥土翻回耕地。
  * 范围判定复用原版 {@link FarmBlock} 的润湿规则，所以修完的耕地不会因缺水再次退化；
  * 被方块盖住或已经不再是泥土的位置不会被选中，符合“无法修复就跳过”的要求。
  * 只注册在 WORK 行为包里，因此只在白天、有工作站点时生效。
@@ -73,8 +71,12 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 			return false;
 		}
 
-		// 与原版 HarvestFarmland 一样只看农民身边的 3×3×3，只修它下一步就能补种的泥土
-		this.target = findTarget(level, villager, villager.blockPosition(), now);
+		Optional<GlobalPos> jobSite = villager.getBrain().getMemory(MemoryModuleType.JOB_SITE);
+		if (jobSite.isEmpty()) {
+			return false;
+		}
+
+		this.target = findTarget(level, villager, jobSite.get().pos(), now);
 		return this.target != null;
 	}
 

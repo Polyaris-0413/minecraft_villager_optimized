@@ -99,7 +99,7 @@ public class VillagerOptimizedGameTest implements FabricGameTest {
 		helper.setBlock(4, 1, 4, Blocks.DIRT);
 		placeContainedWater(helper, 5, 1, 5);
 		helper.setDayTime(2000);
-		Villager farmer = spawnFarmerWithComposter(helper, 4, 2, 4, new BlockPos(2, 1, 2));
+		Villager farmer = spawnFarmerWithComposter(helper, 1, 1, 1, new BlockPos(2, 1, 2));
 		BlockPos absoluteTarget = helper.absolutePos(new BlockPos(4, 1, 4));
 		// 翻地那一刻必须站在目标方块上，而不是隔着两格就动手
 		helper.failIfEver(() -> {
