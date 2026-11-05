@@ -90,8 +90,8 @@ public final class VillagerSettings {
 	/** 维护行为在 WORK 行为包里的优先级，与工作、收割、漫步同级。 */
 	public static final int FARMLAND_MAINTENANCE_BEHAVIOR_PRIORITY = 5;
 
-	/** 扫描可翻泥土的间隔（tick），避免每个农民每 tick 扫一片区域。 */
-	public static final int FARMLAND_MAINTENANCE_SCAN_INTERVAL_TICKS = 40;
+	/** 扫描可翻泥土的间隔（tick）；调低后新放的水能更快被响应，代价是空闲农民扫得更勤。 */
+	public static final int FARMLAND_MAINTENANCE_SCAN_INTERVAL_TICKS = 20;
 
 	/** 单次维护会话的兜底时长（tick）；正常收尾由 canStillUse 的“没有目标/换班/不可达”判断。 */
 	public static final int FARMLAND_MAINTENANCE_BEHAVIOR_DURATION_TICKS = 24000;

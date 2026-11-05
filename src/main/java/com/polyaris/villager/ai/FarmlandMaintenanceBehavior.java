@@ -168,6 +168,7 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 
 	@Override
 	protected void stop(ServerLevel level, Villager villager, long now) {
+		boolean noWork = this.finished;
 		Brain<Villager> brain = villager.getBrain();
 		brain.eraseMemory(MemoryModuleType.WALK_TARGET);
 		brain.eraseMemory(MemoryModuleType.LOOK_TARGET);
@@ -184,7 +185,10 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 		this.unreachableSince = -1L;
 		this.gaveUpUnreachable = false;
 		this.finished = false;
-		this.nextScanTime = now + VillagerSettings.FARMLAND_MAINTENANCE_RETRY_COOLDOWN_TICKS;
+		// 只是没活时用普通扫描间隔，别让新放的水/新铺的土等上 100 tick 的冷却
+		this.nextScanTime = now + (noWork
+			? VillagerSettings.FARMLAND_MAINTENANCE_SCAN_INTERVAL_TICKS
+			: VillagerSettings.FARMLAND_MAINTENANCE_RETRY_COOLDOWN_TICKS);
 	}
 
 	private void walkTo(Villager villager) {
