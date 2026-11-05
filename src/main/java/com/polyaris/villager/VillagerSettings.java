@@ -78,10 +78,10 @@ public final class VillagerSettings {
 	/** 会维护水浇地的职业。 */
 	public static final VillagerProfession FARMLAND_MAINTENANCE_PROFESSION = VillagerProfession.FARMER;
 
-	/** 以工作站点（堆肥桶）为圆心搜索泥土的水平半径（格）。 */
+	/** 以农民自身为中心的前瞻半径（格）；这不是农场范围，实际修复区域由水源覆盖决定，农民会逐块走过去覆盖。 */
 	public static final int FARMLAND_MAINTENANCE_SEARCH_RADIUS = 16;
 
-	/** 以工作站点为圆心搜索泥土的竖直半径（格）；农田通常与堆肥桶同层。 */
+	/** 前瞻的竖直半径（格）；农田通常与农民同层。 */
 	public static final int FARMLAND_MAINTENANCE_VERTICAL_RADIUS = 2;
 
 	/** 原版耕地的润湿半径（格），与 FarmBlock#isNearWater 的扫描范围一致。 */

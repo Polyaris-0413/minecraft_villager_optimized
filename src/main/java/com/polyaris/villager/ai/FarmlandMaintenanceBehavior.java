@@ -28,7 +28,9 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * 农民维护工作站点（堆肥桶）周围的水浇地：把水源覆盖范围内的裸露泥土翻回耕地。
+ * 农民维护水浇地：把水源覆盖范围内的裸露泥土翻回耕地。
+ * 搜索跟着农民走（以农民自身为中心的前瞻范围），堆肥桶只负责启用行为，不限制修复区域；
+ * 因此整片水浇地（包括大块田和湖岸）会被农民逐块走过去覆盖，而不是只在堆肥桶附近。
  * 范围判定复用原版 {@link FarmBlock} 的润湿规则，所以修完的耕地不会因缺水再次退化；
  * 被方块盖住或已经不再是泥土的位置不会被选中，符合“无法修复就跳过”的要求。
  * 只注册在 WORK 行为包里，因此只在白天、有工作站点时生效。
@@ -48,12 +50,7 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 
 	public FarmlandMaintenanceBehavior() {
 		super(
-			ImmutableMap.of(
-				MemoryModuleType.JOB_SITE,
-				MemoryStatus.VALUE_PRESENT,
-				MemoryModuleType.WALK_TARGET,
-				MemoryStatus.VALUE_ABSENT
-			),
+			ImmutableMap.of(MemoryModuleType.JOB_SITE, MemoryStatus.VALUE_PRESENT),
 			VillagerSettings.FARMLAND_MAINTENANCE_BEHAVIOR_DURATION_TICKS
 		);
 	}
@@ -71,12 +68,8 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 			return false;
 		}
 
-		Optional<GlobalPos> jobSite = villager.getBrain().getMemory(MemoryModuleType.JOB_SITE);
-		if (jobSite.isEmpty()) {
-			return false;
-		}
-
-		this.target = findTarget(level, villager, jobSite.get().pos(), now);
+		// 搜索跟着农民走：堆肥桶只负责启用行为，不限制修复区域；整片水浇地靠农民逐块走过去覆盖
+		this.target = findTarget(level, villager, villager.blockPosition(), now);
 		return this.target != null;
 	}
 
