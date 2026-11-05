@@ -116,16 +116,35 @@ public class VillagerOptimizedGameTest implements FabricGameTest {
 		helper.succeedWhen(() -> helper.assertBlockPresent(Blocks.FARMLAND, 4, 1, 4));
 	}
 
-	/** 草方块也应像泥土一样被翻成耕地。 */
-	@GameTest(template = FabricGameTest.EMPTY_STRUCTURE, timeoutTicks = 600, batch = "farmerBatch")
-	public void farmersTillIrrigatedGrass(GameTestHelper helper) {
+	/** 草方块不再开荒：水边草方块保持原样。 */
+	@GameTest(template = FabricGameTest.EMPTY_STRUCTURE, timeoutTicks = 400, batch = "farmerBatch")
+	public void irrigatedGrassIsNotTilled(GameTestHelper helper) {
 		buildFloor(helper, Blocks.STONE);
 		helper.setBlock(2, 1, 2, Blocks.COMPOSTER);
 		helper.setBlock(4, 1, 4, Blocks.GRASS_BLOCK);
 		placeContainedWater(helper, 5, 1, 5);
 		helper.setDayTime(2000);
 		spawnFarmerWithComposter(helper, 3, 1, 4, new BlockPos(2, 1, 2));
-		helper.succeedWhen(() -> helper.assertBlockPresent(Blocks.FARMLAND, 4, 1, 4));
+		helper.runAfterDelay(200L, () -> {
+			helper.assertBlockPresent(Blocks.GRASS_BLOCK, 4, 1, 4);
+			helper.succeed();
+		});
+	}
+
+	/** 水浇泥土上方有草时，先清草再翻；不能因为种子够而永久卡住。 */
+	@GameTest(template = FabricGameTest.EMPTY_STRUCTURE, timeoutTicks = 600, batch = "farmerBatch")
+	public void farmersClearGrassOnIrrigatedDirt(GameTestHelper helper) {
+		buildFloor(helper, Blocks.STONE);
+		helper.setBlock(2, 1, 2, Blocks.COMPOSTER);
+		helper.setBlock(4, 1, 4, Blocks.DIRT);
+		helper.setBlock(4, 2, 4, Blocks.SHORT_GRASS);
+		placeContainedWater(helper, 5, 1, 5);
+		helper.setDayTime(2000);
+		spawnFarmerWithComposter(helper, 3, 1, 4, new BlockPos(2, 1, 2));
+		helper.succeedWhen(() -> {
+			helper.assertBlockNotPresent(Blocks.SHORT_GRASS, 4, 2, 4);
+			helper.assertBlockPresent(Blocks.FARMLAND, 4, 1, 4);
+		});
 	}
 
 	/**

@@ -5,7 +5,7 @@ A lightweight Fabric mod for Minecraft 1.21.1 that expands villager-related mech
 ## Features
 
 - Villagers no longer trample farmland
-- Farmer villagers repair trampled farmland (dirt and grass) in water-fed fields
+- Farmer villagers repair trampled farmland (dirt) in water-fed fields
 - Farmer villagers gather wheat seeds from grass when their seed stock runs low
 - Villagers regenerate health while sleeping
 - Armorer, Toolsmith, and Weaponsmith villagers can repair Iron Golems
