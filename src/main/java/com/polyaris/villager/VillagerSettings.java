@@ -75,6 +75,54 @@ public final class VillagerSettings {
 	/** 修复音效音高的随机抖动幅度，与原版 IronGolem#mobInteract 一致。 */
 	public static final float GOLEM_REPAIR_SOUND_PITCH_JITTER = 0.2F;
 
+	/** 会维护水浇地的职业。 */
+	public static final VillagerProfession FARMLAND_MAINTENANCE_PROFESSION = VillagerProfession.FARMER;
+
+	/** 以工作站点（堆肥桶）为圆心搜索泥土的水平半径（格）。 */
+	public static final int FARMLAND_MAINTENANCE_SEARCH_RADIUS = 16;
+
+	/** 以工作站点为圆心搜索泥土的竖直半径（格）；农田通常与堆肥桶同层。 */
+	public static final int FARMLAND_MAINTENANCE_VERTICAL_RADIUS = 2;
+
+	/** 原版耕地的润湿半径（格），与 FarmBlock#isNearWater 的扫描范围一致。 */
+	public static final int FARMLAND_HYDRATION_RADIUS = 4;
+
+	/** 维护行为在 WORK 行为包里的优先级，与工作、收割、漫步同级。 */
+	public static final int FARMLAND_MAINTENANCE_BEHAVIOR_PRIORITY = 5;
+
+	/** 扫描可翻泥土的间隔（tick），避免每个农民每 tick 扫一片区域。 */
+	public static final int FARMLAND_MAINTENANCE_SCAN_INTERVAL_TICKS = 40;
+
+	/** 维护行为的兜底时长（tick）；真正是否继续由 canStillUse 判断。 */
+	public static final int FARMLAND_MAINTENANCE_BEHAVIOR_DURATION_TICKS = 600;
+
+	/** 单次维护尝试的最长跟随时间（tick）。 */
+	public static final int FARMLAND_MAINTENANCE_ATTEMPT_TIMEOUT_TICKS = 600;
+
+	/** 寻路判定不可达后允许继续尝试的时间（tick），超过就放弃本次。 */
+	public static final int FARMLAND_MAINTENANCE_UNREACHABLE_GIVE_UP_TICKS = 60;
+
+	/** 一次维护结束后的冷却（tick），避免刚修完立刻重新选中目标。 */
+	public static final int FARMLAND_MAINTENANCE_RETRY_COOLDOWN_TICKS = 100;
+
+	/** 不可达目标被忽略的时长（tick），避免反复往同一个地方寻路。 */
+	public static final int FARMLAND_MAINTENANCE_IGNORE_TICKS = 1200;
+
+	/** 走向待翻泥土的速度修正，与村民工作、闲逛一致。 */
+	public static final float FARMLAND_MAINTENANCE_WALK_SPEED = 0.5F;
+
+	/** 村民近身翻地的距离（格）。 */
+	public static final double FARMLAND_MAINTENANCE_REACH = 2.0;
+
+	/** 走向目标时，离目标多近算“到了”（格）。 */
+	public static final int FARMLAND_MAINTENANCE_WALK_CLOSE_ENOUGH = 1;
+
+	/** 翻地音效音量，与玩家手持锄头一致。 */
+	public static final float FARMLAND_MAINTENANCE_SOUND_VOLUME = 1.0F;
+
+	/** 翻地音效音高，与玩家手持锄头一致。 */
+	public static final float FARMLAND_MAINTENANCE_SOUND_PITCH = 1.0F;
+
 	/** 睡眠时每次恢复的生命值。 */
 	public static final float SLEEP_REGENERATION_AMOUNT = 1.0F;
 
@@ -83,5 +131,9 @@ public final class VillagerSettings {
 
 	public static boolean isGolemRepairer(VillagerProfession profession) {
 		return GOLEM_REPAIR_PROFESSIONS.contains(profession);
+	}
+
+	public static boolean isFarmlandMaintainer(VillagerProfession profession) {
+		return profession == FARMLAND_MAINTENANCE_PROFESSION;
 	}
 }
