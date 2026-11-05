@@ -147,6 +147,19 @@ public class VillagerOptimizedGameTest implements FabricGameTest {
 		});
 	}
 
+	/** 空耕地离农民超过原版 3×3×3 时，也应该走过去补种。 */
+	@GameTest(template = FabricGameTest.EMPTY_STRUCTURE, timeoutTicks = 600, batch = "farmerBatch")
+	public void farmersPlantEmptyFarmlandBeyondVanillaRange(GameTestHelper helper) {
+		buildFloor(helper, Blocks.STONE);
+		helper.setBlock(2, 1, 2, Blocks.COMPOSTER);
+		helper.setBlock(6, 1, 6, Blocks.FARMLAND);
+		placeContainedWater(helper, 7, 1, 7);
+		helper.setDayTime(2000);
+		Villager farmer = spawnFarmerWithComposter(helper, 3, 1, 4, new BlockPos(2, 1, 2));
+		farmer.getInventory().addItem(new ItemStack(Items.WHEAT_SEEDS, 8));
+		helper.succeedWhen(() -> helper.assertBlockPresent(Blocks.WHEAT, 6, 2, 6));
+	}
+
 	/**
 	 * 没有可翻的地、种子不足时，农民会打草。
 	 * 掉率是原版 1/8，测试只断言草被打掉，不赌随机数。

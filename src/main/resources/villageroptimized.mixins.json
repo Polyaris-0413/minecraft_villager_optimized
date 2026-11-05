@@ -5,7 +5,8 @@
 	"mixins": [
 		"FarmBlockMixin",
 		"VillagerMixin",
-		"VillagerGoalPackagesMixin"
+		"VillagerGoalPackagesMixin",
+		"WorkAtComposterMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
