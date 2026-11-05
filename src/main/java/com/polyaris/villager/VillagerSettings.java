@@ -114,6 +114,12 @@ public final class VillagerSettings {
 	/** 走向待翻泥土的速度修正，与村民工作、闲逛一致。 */
 	public static final float FARMLAND_MAINTENANCE_WALK_SPEED = 0.5F;
 
+	/** 农民打草补种子的目标存量：低于这个数才去打草，达到就停。 */
+	public static final int FARMER_SEED_STOCK_TARGET = 16;
+
+	/** 打掉一丛草掉小麦种子的概率，与原版 short_grass/tall_grass 战利品表一致（1/8）。 */
+	public static final float FARMER_GRASS_SEED_CHANCE = 0.125F;
+
 	/** 走向目标时，离目标多近算“到了”（格）；0 表示必须站到目标方块正上方。 */
 	public static final int FARMLAND_MAINTENANCE_WALK_CLOSE_ENOUGH = 0;
 

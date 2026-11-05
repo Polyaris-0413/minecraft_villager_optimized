@@ -20,10 +20,14 @@ import net.minecraft.world.entity.ai.memory.WalkTarget;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.schedule.Activity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.DoublePlantBlock;
 import net.minecraft.world.level.block.FarmBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
@@ -34,12 +38,15 @@ import org.jetbrains.annotations.Nullable;
  * 因此整片水浇地（包括大块田和湖岸）会被农民逐块走过去覆盖，而不是只在堆肥桶附近。
  * 范围判定复用原版 {@link FarmBlock} 的润湿规则，所以修完的耕地不会因缺水再次退化；
  * 被方块盖住或已经不再是可翻方块的位置不会被选中，符合“无法修复就跳过”的要求。
+ * 没有可翻的地时，若小麦种子低于 {@link VillagerSettings#FARMER_SEED_STOCK_TARGET}，会打草补种子，
+ * 掉率与原版一致（1/8），补够就收手，不碰食物与繁衍逻辑。
  * 只注册在 WORK 行为包里，并用 {@link Activity#WORK} 门禁保证换班、袭击时立即收手。
  * 翻地前必须站到目标方块正上方，站定一小段（与原版一次挥臂等长）再落锄。
  */
 public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 	@Nullable
 	private BlockPos target;
+	private boolean gathering;
 	private long lastProgressTime;
 	private long nextScanTime;
 	private long actionReadyAt = -1L;
@@ -67,12 +74,21 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 
 		this.nextScanTime = now + VillagerSettings.FARMLAND_MAINTENANCE_SCAN_INTERVAL_TICKS;
 		this.target = null;
+		this.gathering = false;
 		if (!canMaintain(level, villager)) {
 			return false;
 		}
 
+		BlockPos center = villager.blockPosition();
 		// 搜索跟着农民走：堆肥桶只负责启用行为，不限制修复区域；整片水浇地靠农民逐块走过去覆盖
-		this.target = findTarget(level, villager, villager.blockPosition(), now);
+		this.target = findTarget(level, villager, center, now);
+		if (this.target != null) {
+			return true;
+		}
+
+		// 先把能翻的地翻完，再谈补种子，避免种子不够时把地翻出来却种不上
+		this.target = findGrassTarget(level, villager, center);
+		this.gathering = this.target != null;
 		return this.target != null;
 	}
 
@@ -131,7 +147,15 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 			}
 
 			this.nextScanTime = now + VillagerSettings.FARMLAND_MAINTENANCE_SCAN_INTERVAL_TICKS;
-			this.target = findTarget(level, villager, villager.blockPosition(), now);
+			BlockPos center = villager.blockPosition();
+			this.target = findTarget(level, villager, center, now);
+			if (this.target != null) {
+				this.gathering = false;
+			} else {
+				this.target = findGrassTarget(level, villager, center);
+				this.gathering = this.target != null;
+			}
+
 			if (this.target == null) {
 				// 没活就把控制权交回原版；注视目标不清掉会挡住要求 LOOK_TARGET 缺席的 HarvestFarmland
 				brain.eraseMemory(MemoryModuleType.LOOK_TARGET);
@@ -141,7 +165,7 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 		}
 
 		brain.setMemory(MemoryModuleType.LOOK_TARGET, new BlockPosTracker(this.target));
-		if (!isStandingOn(villager, this.target)) {
+		if (!isAtTarget(villager, this.target, this.gathering)) {
 			this.actionReadyAt = -1L;
 			walkTo(villager);
 			return;
@@ -157,7 +181,10 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 			return;
 		}
 
-		if (till(level, villager, this.target)) {
+		boolean worked = this.gathering
+			? harvestGrass(level, villager, this.target)
+			: till(level, villager, this.target);
+		if (worked) {
 			// 立刻准备下一块，避免停下来的那一拍被原版的“回工作点”牵引
 			this.lastProgressTime = now;
 			this.target = null;
@@ -181,6 +208,7 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 		}
 
 		this.target = null;
+		this.gathering = false;
 		this.actionReadyAt = -1L;
 		this.unreachableSince = -1L;
 		this.gaveUpUnreachable = false;
@@ -196,19 +224,26 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 			return;
 		}
 
-		// 目标方块本身是实心的，寻路必须指向它正上方那一格，村民才会站到方块上
+		// 翻地要站到方块正上方；打草则直接走进草所在的那一格
+		BlockPos walkTarget = this.gathering ? this.target : this.target.above();
 		villager.getBrain().setMemory(
 			MemoryModuleType.WALK_TARGET,
 			new WalkTarget(
-				new BlockPosTracker(this.target.above()),
+				new BlockPosTracker(walkTarget),
 				VillagerSettings.FARMLAND_MAINTENANCE_WALK_SPEED,
 				VillagerSettings.FARMLAND_MAINTENANCE_WALK_CLOSE_ENOUGH
 			)
 		);
 	}
 
-	private static boolean isStandingOn(Villager villager, BlockPos pos) {
-		return villager.onGround() && villager.blockPosition().below().equals(pos);
+	private static boolean isAtTarget(Villager villager, BlockPos pos, boolean gathering) {
+		if (!villager.onGround()) {
+			return false;
+		}
+
+		return gathering
+			? villager.blockPosition().equals(pos)
+			: villager.blockPosition().below().equals(pos);
 	}
 
 	private static boolean canMaintain(ServerLevel level, Villager villager) {
@@ -285,6 +320,80 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 	}
 
 	/**
+	 * 找最近的矮草/高草。高草统一取下半格，避免把行走目标设到需要跳上去的上半格。
+	 */
+	@Nullable
+	private static BlockPos findGrassTarget(ServerLevel level, Villager villager, BlockPos center) {
+		if (countWheatSeeds(villager) >= VillagerSettings.FARMER_SEED_STOCK_TARGET || !level.isLoaded(center)) {
+			return null;
+		}
+
+		int radius = VillagerSettings.FARMLAND_MAINTENANCE_SEARCH_RADIUS;
+		int vertical = VillagerSettings.FARMLAND_MAINTENANCE_VERTICAL_RADIUS;
+		BlockPos best = null;
+		double bestDistance = Double.MAX_VALUE;
+		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+
+		for (int dy = -vertical; dy <= vertical; dy++) {
+			for (int dz = -radius; dz <= radius; dz++) {
+				for (int dx = -radius; dx <= radius; dx++) {
+					cursor.set(center.getX() + dx, center.getY() + dy, center.getZ() + dz);
+					BlockState state = level.getBlockState(cursor);
+					if (state.is(Blocks.TALL_GRASS) && state.getValue(DoublePlantBlock.HALF) == DoubleBlockHalf.UPPER) {
+						cursor.set(cursor.below());
+						state = level.getBlockState(cursor);
+					}
+
+					if (!state.is(Blocks.SHORT_GRASS) && !state.is(Blocks.TALL_GRASS)) {
+						continue;
+					}
+
+					double distance = villager.distanceToSqr(Vec3.atCenterOf(cursor));
+					if (distance < bestDistance) {
+						bestDistance = distance;
+						best = cursor.immutable();
+					}
+				}
+			}
+		}
+
+		return best;
+	}
+
+	private static boolean harvestGrass(ServerLevel level, Villager villager, BlockPos pos) {
+		if (!isGrassTarget(level, pos)) {
+			return false;
+		}
+
+		BlockState state = level.getBlockState(pos);
+		if (!level.destroyBlock(pos, false, villager)) {
+			return false;
+		}
+
+		// 高草的另一半会随方块更新消失；这里只兜底处理没被带走的半截
+		if (state.is(Blocks.TALL_GRASS)) {
+			DoubleBlockHalf half = state.getValue(DoublePlantBlock.HALF);
+			BlockPos other = half == DoubleBlockHalf.LOWER ? pos.above() : pos.below();
+			if (level.getBlockState(other).is(Blocks.TALL_GRASS)) {
+				level.removeBlock(other, false);
+			}
+		}
+
+		if (level.random.nextFloat() < VillagerSettings.FARMER_GRASS_SEED_CHANCE) {
+			ItemStack leftover = villager.getInventory().addItem(new ItemStack(Items.WHEAT_SEEDS));
+			if (!leftover.isEmpty()) {
+				Block.popResource(level, pos, leftover);
+			}
+		}
+
+		return true;
+	}
+
+	private static int countWheatSeeds(Villager villager) {
+		return villager.getInventory().countItem(Items.WHEAT_SEEDS);
+	}
+
+	/**
 	 * 预计算农民周围哪些位置被水润湿。水覆盖自己所在层和下一层的耕地，
 	 * 水平半径与 {@link FarmBlock} 的润湿规则一致；逐块调用会做太多次流体查询。
 	 */
@@ -347,8 +456,21 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 			&& level.getBlockState(pos.above()).isAir();
 	}
 
-	private static boolean isEligible(ServerLevel level, BlockPos pos) {
+	private boolean isEligible(ServerLevel level, BlockPos pos) {
+		return this.gathering ? isGrassTarget(level, pos) : isFarmlandTarget(level, pos);
+	}
+
+	private static boolean isFarmlandTarget(ServerLevel level, BlockPos pos) {
 		return isCandidate(level, pos) && isIrrigated(level, pos);
+	}
+
+	private static boolean isGrassTarget(ServerLevel level, BlockPos pos) {
+		if (!level.isLoaded(pos)) {
+			return false;
+		}
+
+		BlockState state = level.getBlockState(pos);
+		return state.is(Blocks.SHORT_GRASS) || state.is(Blocks.TALL_GRASS);
 	}
 
 	/** 与原版 FarmBlock#isNearWater 相同：水平 ±4、竖直 y 到 y+1 内有水。 */
@@ -364,7 +486,7 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 	}
 
 	private static boolean till(ServerLevel level, Villager villager, BlockPos pos) {
-		if (!isEligible(level, pos)) {
+		if (!isFarmlandTarget(level, pos)) {
 			return false;
 		}
 

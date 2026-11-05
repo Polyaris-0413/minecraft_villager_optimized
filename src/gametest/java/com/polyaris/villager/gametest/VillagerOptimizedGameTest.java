@@ -1,5 +1,6 @@
 package com.polyaris.villager.gametest;
 
+import com.polyaris.villager.VillagerSettings;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -125,6 +126,38 @@ public class VillagerOptimizedGameTest implements FabricGameTest {
 		helper.setDayTime(2000);
 		spawnFarmerWithComposter(helper, 3, 1, 4, new BlockPos(2, 1, 2));
 		helper.succeedWhen(() -> helper.assertBlockPresent(Blocks.FARMLAND, 4, 1, 4));
+	}
+
+	/**
+	 * 没有可翻的地、种子不足时，农民会打草。
+	 * 掉率是原版 1/8，测试只断言草被打掉，不赌随机数。
+	 */
+	@GameTest(template = FabricGameTest.EMPTY_STRUCTURE, timeoutTicks = 400, batch = "farmerBatch")
+	public void farmersBreakGrassWhenOutOfSeeds(GameTestHelper helper) {
+		buildFloor(helper, Blocks.DIRT);
+		helper.setBlock(2, 1, 2, Blocks.COMPOSTER);
+		helper.setBlock(4, 1, 4, Blocks.SHORT_GRASS);
+		helper.setDayTime(2000);
+		spawnFarmerWithComposter(helper, 3, 1, 4, new BlockPos(2, 1, 2));
+		helper.runAfterDelay(200L, () -> {
+			helper.assertBlockNotPresent(Blocks.SHORT_GRASS, 4, 1, 4);
+			helper.succeed();
+		});
+	}
+
+	/** 小麦种子已经够了就不该再去打草；工作点放高一点，避免原版堆肥把种子消耗掉干扰断言。 */
+	@GameTest(template = FabricGameTest.EMPTY_STRUCTURE, timeoutTicks = 400, batch = "farmerBatch")
+	public void farmersDoNotGatherGrassWhenSeedsAreStocked(GameTestHelper helper) {
+		buildFloor(helper, Blocks.DIRT);
+		helper.setBlock(2, 5, 2, Blocks.COMPOSTER);
+		helper.setBlock(4, 1, 4, Blocks.SHORT_GRASS);
+		helper.setDayTime(2000);
+		Villager farmer = spawnFarmerWithComposter(helper, 3, 1, 4, new BlockPos(2, 5, 2));
+		farmer.getInventory().addItem(new ItemStack(Items.WHEAT_SEEDS, VillagerSettings.FARMER_SEED_STOCK_TARGET));
+		helper.runAfterDelay(200L, () -> {
+			helper.assertBlockPresent(Blocks.SHORT_GRASS, 4, 1, 4);
+			helper.succeed();
+		});
 	}
 
 	/** 维护期间农民主手应拿着铁锄，而不是空手修复。 */
