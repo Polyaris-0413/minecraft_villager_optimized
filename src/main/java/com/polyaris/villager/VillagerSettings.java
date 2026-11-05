@@ -117,6 +117,9 @@ public final class VillagerSettings {
 	/** 走向目标时，离目标多近算“到了”（格）。 */
 	public static final int FARMLAND_MAINTENANCE_WALK_CLOSE_ENOUGH = 1;
 
+	/** 维护田地期间手上显示的工具（纯视觉，不消耗）。 */
+	public static final Item FARMLAND_MAINTENANCE_HELD_ITEM = Items.IRON_SHOVEL;
+
 	/** 翻地音效音量，与玩家手持锄头一致。 */
 	public static final float FARMLAND_MAINTENANCE_SOUND_VOLUME = 1.0F;
 

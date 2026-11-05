@@ -3,6 +3,7 @@ package com.polyaris.villager.ai;
 import java.util.Optional;
 
 import com.google.common.collect.ImmutableMap;
+import com.polyaris.villager.VillagerHeldItem;
 import com.polyaris.villager.VillagerSettings;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
@@ -18,6 +19,7 @@ import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.memory.MemoryStatus;
 import net.minecraft.world.entity.ai.memory.WalkTarget;
 import net.minecraft.world.entity.npc.Villager;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.FarmBlock;
@@ -42,6 +44,7 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 	private BlockPos ignoredTarget;
 	private long ignoreUntil;
 	private boolean tilled;
+	private ItemStack previousMainHand = ItemStack.EMPTY;
 
 	public FarmlandMaintenanceBehavior() {
 		super(
@@ -84,6 +87,8 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 			.getMemory(MemoryModuleType.CANT_REACH_WALK_TARGET_SINCE)
 			.orElse(Long.MIN_VALUE);
 		this.tilled = false;
+		this.previousMainHand = villager.getMainHandItem().copy();
+		VillagerHeldItem.hold(villager, VillagerSettings.FARMLAND_MAINTENANCE_HELD_ITEM);
 		walkTo(villager);
 	}
 
@@ -129,6 +134,8 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 		Brain<Villager> brain = villager.getBrain();
 		brain.eraseMemory(MemoryModuleType.WALK_TARGET);
 		brain.eraseMemory(MemoryModuleType.LOOK_TARGET);
+		VillagerHeldItem.release(villager, this.previousMainHand);
+		this.previousMainHand = ItemStack.EMPTY;
 		if (!this.tilled && this.target != null && isEligible(level, this.target)) {
 			// 目标仍然有效却没修完，多半是走不过去；短时间内别再反复选它
 			this.ignoredTarget = this.target;

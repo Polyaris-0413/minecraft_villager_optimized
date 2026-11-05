@@ -3,16 +3,13 @@ package com.polyaris.villager.ai;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.common.collect.ImmutableMap;
+import com.polyaris.villager.VillagerHeldItem;
 import com.polyaris.villager.VillagerSettings;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.Mth;
-import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.behavior.Behavior;
 import net.minecraft.world.entity.ai.behavior.EntityTracker;
@@ -31,12 +28,6 @@ import org.jetbrains.annotations.Nullable;
  * 由原版的 MoveToTargetSink 负责实际寻路。
  */
 public class RepairIronGolemBehavior extends Behavior<Villager> {
-	/**
-	 * 正在修复的村民。原版 ShowTradesToPlayer 在玩家靠近时会每 tick 清空主手，
-	 * 所以要在实体 tick 末尾把铁锭放回去，见 {@link com.polyaris.villager.mixin.VillagerMixin}。
-	 */
-	private static final Set<UUID> HOLDING_ITEM = ConcurrentHashMap.newKeySet();
-
 	@Nullable
 	private IronGolem golem;
 	private long attemptStartTime;
@@ -74,8 +65,7 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 			.getMemory(MemoryModuleType.CANT_REACH_WALK_TARGET_SINCE)
 			.orElse(Long.MIN_VALUE);
 		this.previousMainHand = villager.getMainHandItem().copy();
-		HOLDING_ITEM.add(villager.getUUID());
-		villager.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(VillagerSettings.GOLEM_REPAIR_HELD_ITEM));
+		VillagerHeldItem.hold(villager, VillagerSettings.GOLEM_REPAIR_HELD_ITEM);
 	}
 
 	@Override
@@ -133,8 +123,7 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 	protected void stop(ServerLevel level, Villager villager, long now) {
 		villager.getBrain().eraseMemory(MemoryModuleType.WALK_TARGET);
 		villager.getBrain().eraseMemory(MemoryModuleType.LOOK_TARGET);
-		HOLDING_ITEM.remove(villager.getUUID());
-		villager.setItemSlot(EquipmentSlot.MAINHAND, this.previousMainHand);
+		VillagerHeldItem.release(villager, this.previousMainHand);
 		this.previousMainHand = ItemStack.EMPTY;
 		this.golem = null;
 		this.nextScanTime = now + VillagerSettings.GOLEM_REPAIR_RETRY_COOLDOWN_TICKS;
@@ -180,15 +169,5 @@ public class RepairIronGolemBehavior extends Behavior<Villager> {
 			golem -> golem.isAlive() && golem.getHealth() < golem.getMaxHealth()
 		);
 		return candidates.stream().min(Comparator.comparingDouble(villager::distanceToSqr)).orElse(null);
-	}
-
-	/** 修复期间该村民的主手应当一直拿着铁锭。 */
-	public static boolean isHoldingRepairItem(Villager villager) {
-		return HOLDING_ITEM.contains(villager.getUUID());
-	}
-
-	/** 村民死亡等异常结束时清理标记，避免集合里留下失效的 UUID。 */
-	public static void forgetHoldingRepairItem(Villager villager) {
-		HOLDING_ITEM.remove(villager.getUUID());
 	}
 }

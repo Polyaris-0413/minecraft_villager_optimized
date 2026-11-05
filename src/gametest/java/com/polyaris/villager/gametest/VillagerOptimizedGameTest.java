@@ -107,6 +107,21 @@ public class VillagerOptimizedGameTest implements FabricGameTest {
 		});
 	}
 
+	/** 维护期间农民主手应拿着铁锹，而不是空手修复。 */
+	@GameTest(template = FabricGameTest.EMPTY_STRUCTURE, timeoutTicks = 600, batch = "farmerBatch")
+	public void farmerHoldsShovelWhileMaintainingFarmland(GameTestHelper helper) {
+		buildFloor(helper, Blocks.STONE);
+		helper.setBlock(2, 1, 2, Blocks.COMPOSTER);
+		helper.setBlock(4, 1, 4, Blocks.DIRT);
+		placeContainedWater(helper, 5, 1, 5);
+		helper.setDayTime(2000);
+		Villager farmer = spawnFarmerWithComposter(helper, 1, 1, 1, new BlockPos(2, 1, 2));
+		helper.succeedWhen(() -> helper.assertTrue(
+			farmer.getMainHandItem().is(Items.IRON_SHOVEL),
+			"农民维护田地时没有拿着铁锹：" + farmer.getMainHandItem()
+		));
+	}
+
 	/** 上方被方块盖住的泥土不应被翻（要求 1）。 */
 	@GameTest(template = FabricGameTest.EMPTY_STRUCTURE, timeoutTicks = 400, batch = "farmerBatch")
 	public void coveredDirtIsNotTilled(GameTestHelper helper) {
