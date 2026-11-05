@@ -93,8 +93,11 @@ public final class VillagerSettings {
 	/** 扫描可翻泥土的间隔（tick），避免每个农民每 tick 扫一片区域。 */
 	public static final int FARMLAND_MAINTENANCE_SCAN_INTERVAL_TICKS = 40;
 
-	/** 维护行为的兜底时长（tick）；真正是否继续由 canStillUse 判断。 */
-	public static final int FARMLAND_MAINTENANCE_BEHAVIOR_DURATION_TICKS = 600;
+	/** 单次维护会话的兜底时长（tick）；正常收尾由 canStillUse 的“没有目标/换班/不可达”判断。 */
+	public static final int FARMLAND_MAINTENANCE_BEHAVIOR_DURATION_TICKS = 24000;
+
+	/** 站到目标上后、落锄前的停顿（tick），与原版一次手臂挥动 6 tick 等长。 */
+	public static final int FARMLAND_MAINTENANCE_ACTION_TICKS = 6;
 
 	/** 连续维护期间超过这么久没有翻到任何一块，就结束本次会话（翻到一块会重置）。 */
 	public static final int FARMLAND_MAINTENANCE_ATTEMPT_TIMEOUT_TICKS = 600;

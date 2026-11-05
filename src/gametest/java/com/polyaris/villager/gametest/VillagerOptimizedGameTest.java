@@ -19,7 +19,6 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.BedBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.FarmBlock;
 import net.minecraft.world.level.block.state.properties.BedPart;
 
 /**
@@ -112,11 +111,20 @@ public class VillagerOptimizedGameTest implements FabricGameTest {
 				);
 			}
 		});
-		// 水在则修完不会因缺水退化，所以湿度应当直接是最大值
-		helper.succeedWhen(() -> {
-			helper.assertBlockPresent(Blocks.FARMLAND, 4, 1, 4);
-			helper.assertBlockProperty(new BlockPos(4, 1, 4), FarmBlock.MOISTURE, FarmBlock.MAX_MOISTURE);
-		});
+		// 与原版锄头一致，翻好时是默认耕地（湿度 0），有水时由 randomTick 自然润湿
+		helper.succeedWhen(() -> helper.assertBlockPresent(Blocks.FARMLAND, 4, 1, 4));
+	}
+
+	/** 草方块也应像泥土一样被翻成耕地。 */
+	@GameTest(template = FabricGameTest.EMPTY_STRUCTURE, timeoutTicks = 600, batch = "farmerBatch")
+	public void farmersTillIrrigatedGrass(GameTestHelper helper) {
+		buildFloor(helper, Blocks.STONE);
+		helper.setBlock(2, 1, 2, Blocks.COMPOSTER);
+		helper.setBlock(4, 1, 4, Blocks.GRASS_BLOCK);
+		placeContainedWater(helper, 5, 1, 5);
+		helper.setDayTime(2000);
+		spawnFarmerWithComposter(helper, 3, 1, 4, new BlockPos(2, 1, 2));
+		helper.succeedWhen(() -> helper.assertBlockPresent(Blocks.FARMLAND, 4, 1, 4));
 	}
 
 	/** 维护期间农民主手应拿着铁锄，而不是空手修复。 */
