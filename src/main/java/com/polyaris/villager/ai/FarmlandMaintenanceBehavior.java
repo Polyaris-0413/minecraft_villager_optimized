@@ -11,8 +11,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.FluidTags;
-import net.minecraft.tags.ItemTags;
-import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.behavior.Behavior;
 import net.minecraft.world.entity.ai.behavior.BlockPosTracker;
@@ -21,7 +19,6 @@ import net.minecraft.world.entity.ai.memory.MemoryStatus;
 import net.minecraft.world.entity.ai.memory.WalkTarget;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.schedule.Activity;
-import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameRules;
@@ -38,12 +35,12 @@ import org.jetbrains.annotations.Nullable;
 /**
  * 农民维护水浇地：把水源覆盖范围内的裸露泥土翻回耕地，草方块不再开荒。
  * 泥土上方挡着矮草/高草时，先清草再翻；清障不受种子存量限制，否则种子够时这块地会永久卡住。
- * 地修完后把附近的空耕地补种上（范围比原版 3×3×3 大），避免田没种满就跑去堆肥；
- * 没有种子时再打草补种子，堆肥/闲逛交给原版。
  * 搜索跟着农民走（以农民自身为中心的前瞻范围），堆肥桶只负责启用行为，不限制修复区域；
  * 因此整片田（包括大块田和湖岸）会被农民逐块走过去覆盖，而不是只在堆肥桶附近。
  * 范围判定复用原版 {@link FarmBlock} 的润湿规则，所以修完的耕地不会因缺水再次退化；
  * 被方块盖住或已经不再是泥土的位置不会被选中，符合“无法修复就跳过”的要求。
+ * 没有可翻的地时，若小麦种子低于 {@link VillagerSettings#FARMER_SEED_STOCK_TARGET}，会打草补种子，
+ * 掉率与原版一致（1/8），补够就收手，不碰食物与繁衍逻辑。
  * 只注册在 WORK 行为包里，并用 {@link Activity#WORK} 门禁保证换班、袭击时立即收手。
  * 翻地前必须站到目标方块正上方，站定一小段（与原版一次挥臂等长）再落锄。
  */
@@ -51,7 +48,6 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 	@Nullable
 	private BlockPos target;
 	private boolean gathering;
-	private boolean planting;
 	private long lastProgressTime;
 	private long nextScanTime;
 	private long actionReadyAt = -1L;
@@ -89,21 +85,11 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 		this.target = findTarget(level, villager, center, now);
 		if (this.target != null) {
 			this.gathering = isGrassTarget(level, this.target);
-			this.planting = false;
 			return true;
 		}
 
-		// 地修完后先把空着的耕地种上，范围比原版 3×3×3 大，避免田没种满就去堆肥
-		this.target = findPlantTarget(level, villager, center, now);
-		if (this.target != null) {
-			this.planting = true;
-			this.gathering = false;
-			return true;
-		}
-
-		// 最后才是补种子；堆肥/闲逛交给原版
+		// 先把能翻的地翻完，再谈补种子，避免种子不够时把地翻出来却种不上
 		this.target = findGrassTarget(level, villager, center);
-		this.planting = false;
 		this.gathering = this.target != null;
 		return this.target != null;
 	}
@@ -115,7 +101,6 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 		this.unreachableSince = -1L;
 		this.gaveUpUnreachable = false;
 		this.finished = false;
-		this.planting = false;
 		this.previousMainHand = villager.getMainHandItem().copy();
 		VillagerHeldItem.hold(villager, VillagerSettings.FARMLAND_MAINTENANCE_HELD_ITEM);
 		walkTo(villager);
@@ -168,17 +153,9 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 			this.target = findTarget(level, villager, center, now);
 			if (this.target != null) {
 				this.gathering = isGrassTarget(level, this.target);
-				this.planting = false;
 			} else {
-				this.target = findPlantTarget(level, villager, center, now);
-				if (this.target != null) {
-					this.planting = true;
-					this.gathering = false;
-				} else {
-					this.target = findGrassTarget(level, villager, center);
-					this.planting = false;
-					this.gathering = this.target != null;
-				}
+				this.target = findGrassTarget(level, villager, center);
+				this.gathering = this.target != null;
 			}
 
 			if (this.target == null) {
@@ -190,7 +167,7 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 		}
 
 		brain.setMemory(MemoryModuleType.LOOK_TARGET, new BlockPosTracker(this.target));
-		if (!isAtTarget(villager, this.target, this.gathering, this.planting)) {
+		if (!isAtTarget(villager, this.target, this.gathering)) {
 			this.actionReadyAt = -1L;
 			walkTo(villager);
 			return;
@@ -206,15 +183,9 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 			return;
 		}
 
-		boolean worked;
-		if (this.planting) {
-			worked = plant(level, villager, this.target);
-		} else if (this.gathering) {
-			worked = harvestGrass(level, villager, this.target);
-		} else {
-			worked = till(level, villager, this.target);
-		}
-
+		boolean worked = this.gathering
+			? harvestGrass(level, villager, this.target)
+			: till(level, villager, this.target);
 		if (worked) {
 			// 立刻准备下一块，避免停下来的那一拍被原版的“回工作点”牵引
 			this.lastProgressTime = now;
@@ -240,7 +211,6 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 
 		this.target = null;
 		this.gathering = false;
-		this.planting = false;
 		this.actionReadyAt = -1L;
 		this.unreachableSince = -1L;
 		this.gaveUpUnreachable = false;
@@ -256,8 +226,8 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 			return;
 		}
 
-		// 翻地要站到方块正上方；打草/种植则直接走进目标所在的那一格
-		BlockPos walkTarget = (this.gathering || this.planting) ? this.target : this.target.above();
+		// 翻地要站到方块正上方；打草则直接走进草所在的那一格
+		BlockPos walkTarget = this.gathering ? this.target : this.target.above();
 		villager.getBrain().setMemory(
 			MemoryModuleType.WALK_TARGET,
 			new WalkTarget(
@@ -268,15 +238,9 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 		);
 	}
 
-	private static boolean isAtTarget(Villager villager, BlockPos pos, boolean gathering, boolean planting) {
+	private static boolean isAtTarget(Villager villager, BlockPos pos, boolean gathering) {
 		if (!villager.onGround()) {
 			return false;
-		}
-
-		if (planting) {
-			// 耕地是 15/16 高，站上去时 blockPosition 会落在耕地那一格，不能用“脚下正好是目标格”判断；
-			// 与原版 HarvestFarmland 一样，用“离作物格中心 1 格以内”判断
-			return Vec3.atCenterOf(pos).distanceToSqr(villager.position()) < 1.0;
 		}
 
 		return gathering
@@ -408,116 +372,6 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 		return best;
 	}
 
-	/**
-	 * 找最近的空耕地（上方是空气）。范围与修田一致；
-	 * 原版农民只扫 3×3×3，大田经常没种满就跑去堆肥。
-	 */
-	@Nullable
-	private BlockPos findPlantTarget(ServerLevel level, Villager villager, BlockPos center, long now) {
-		if (!villager.hasFarmSeeds() || !level.isLoaded(center)) {
-			return null;
-		}
-
-		int radius = VillagerSettings.FARMLAND_MAINTENANCE_SEARCH_RADIUS;
-		int vertical = VillagerSettings.FARMLAND_MAINTENANCE_VERTICAL_RADIUS;
-		BlockPos best = null;
-		double bestDistance = Double.MAX_VALUE;
-		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
-
-		for (int dy = -vertical; dy <= vertical; dy++) {
-			for (int dz = -radius; dz <= radius; dz++) {
-				for (int dx = -radius; dx <= radius; dx++) {
-					cursor.set(center.getX() + dx, center.getY() + dy, center.getZ() + dz);
-					if (!isPlantTarget(level, cursor)) {
-						continue;
-					}
-
-					if (this.ignoredTarget != null && now < this.ignoreUntil && cursor.equals(this.ignoredTarget)) {
-						continue;
-					}
-
-					double distance = villager.distanceToSqr(Vec3.atCenterOf(cursor));
-					if (distance < bestDistance) {
-						bestDistance = distance;
-						best = cursor.immutable();
-					}
-				}
-			}
-		}
-
-		return best;
-	}
-
-	private static boolean isPlantTarget(ServerLevel level, BlockPos pos) {
-		return level.isLoaded(pos)
-			&& level.getBlockState(pos).isAir()
-			&& level.getBlockState(pos.below()).is(Blocks.FARMLAND);
-	}
-
-	/** 供堆肥逻辑判断：附近还有空耕地时，先别把种子堆掉。 */
-	public static boolean hasEmptyFarmland(ServerLevel level, Villager villager) {
-		BlockPos center = villager.blockPosition();
-		if (!level.isLoaded(center)) {
-			return false;
-		}
-
-		int radius = VillagerSettings.FARMLAND_MAINTENANCE_SEARCH_RADIUS;
-		int vertical = VillagerSettings.FARMLAND_MAINTENANCE_VERTICAL_RADIUS;
-		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
-
-		for (int dy = -vertical; dy <= vertical; dy++) {
-			for (int dz = -radius; dz <= radius; dz++) {
-				for (int dx = -radius; dx <= radius; dx++) {
-					cursor.set(center.getX() + dx, center.getY() + dy, center.getZ() + dz);
-					if (isPlantTarget(level, cursor)) {
-						return true;
-					}
-				}
-			}
-		}
-
-		return false;
-	}
-
-	private static boolean plant(ServerLevel level, Villager villager, BlockPos pos) {
-		if (!isPlantTarget(level, pos)) {
-			return false;
-		}
-
-		SimpleContainer inventory = villager.getInventory();
-		for (int i = 0; i < inventory.getContainerSize(); i++) {
-			ItemStack stack = inventory.getItem(i);
-			if (stack.isEmpty() || !stack.is(ItemTags.VILLAGER_PLANTABLE_SEEDS) || !(stack.getItem() instanceof BlockItem blockItem)) {
-				continue;
-			}
-
-			BlockState crop = blockItem.getBlock().defaultBlockState();
-			if (!level.setBlockAndUpdate(pos, crop)) {
-				return false;
-			}
-
-			level.gameEvent(GameEvent.BLOCK_PLACE, pos, GameEvent.Context.of(villager, crop));
-			level.playSound(
-				null,
-				pos.getX() + 0.5,
-				pos.getY() + 0.5,
-				pos.getZ() + 0.5,
-				SoundEvents.CROP_PLANTED,
-				SoundSource.BLOCKS,
-				1.0F,
-				1.0F
-			);
-			stack.shrink(1);
-			if (stack.isEmpty()) {
-				inventory.setItem(i, ItemStack.EMPTY);
-			}
-
-			return true;
-		}
-
-		return false;
-	}
-
 	private static boolean harvestGrass(ServerLevel level, Villager villager, BlockPos pos) {
 		if (!isGrassTarget(level, pos)) {
 			return false;
@@ -610,10 +464,6 @@ public class FarmlandMaintenanceBehavior extends Behavior<Villager> {
 	}
 
 	private boolean isEligible(ServerLevel level, BlockPos pos) {
-		if (this.planting) {
-			return isPlantTarget(level, pos);
-		}
-
 		return this.gathering ? isGrassTarget(level, pos) : isFarmlandTarget(level, pos);
 	}
 
